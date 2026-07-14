@@ -5,8 +5,8 @@
 package db
 
 type Category struct {
-	ID       int32  `json:"id"`
-	Category string `json:"category"`
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type Comment struct {

@@ -18,6 +18,8 @@ protoc:
 	--go-grpc_out ./internal/pb --go-grpc_opt paths=source_relative \
 	--grpc-gateway_out ./internal/pb --grpc-gateway_opt paths=source_relative \
 	proto/*.proto
+gen:
+	make sqlc; make protoc
 test:
 	go test -v -cover ./...
 evans:

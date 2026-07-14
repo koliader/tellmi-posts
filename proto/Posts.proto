@@ -7,11 +7,17 @@ option go_package = "github.com/koliader/tellmi-posts";
 import "Entity.proto";
 
 service Posts {
+  //posts
   rpc Createpost(CreatePost) returns (Success) {}
   rpc ListPosts(Empty) returns (ListPostsRes) {}
   rpc GetPostByID(GetByIDReq) returns (Post) {} 
   rpc EditPost(EditPostReq) returns (Success) {}
   rpc DeletePost(GetByIDReq) returns (Success) {}
+
+  //categories
+  rpc CreateCategory(CreateCategoryReq) returns (Success) {}
+  rpc ListCategories(Empty) returns (Success) {}
+  rpc EditCategory(EditCategoryReq) returns (Success) {}
 }
 
 message CreatePost {
@@ -32,4 +38,13 @@ message EditPostReq {
   int64 id = 1;
   string title = 2;
   string description = 3;
+}
+
+message CreateCategoryReq {
+  string name = 1;
+}
+
+message EditCategoryReq {
+  int64 id = 1;
+  string name = 2;
 }

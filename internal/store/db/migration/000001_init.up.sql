@@ -1,6 +1,6 @@
 CREATE TABLE categories (
   "id" integer PRIMARY KEY,
-  "category" varchar NOT NULL UNIQUE
+  "name" varchar NOT NULL UNIQUE
 );
 CREATE TABLE posts (
   "id" integer PRIMARY KEY,

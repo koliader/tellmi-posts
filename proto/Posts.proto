@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/koliader/tellmi-posts";
+
+import "Entity.proto";
+
+service Posts {
+  rpc Createpost(CreatePost) returns (Success) {}
+  rpc ListPosts(Empty) returns (ListPostsRes) {}
+  rpc GetPostByID(GetByIDReq) returns (Post) {} 
+}
+
+message CreatePost {
+  string title = 1;
+  string description = 2;
+}
+
+message ListPostsRes {
+  repeated Post posts = 1;
+}
+
+message GetByIDReq {
+  int64 id = 1;
+}

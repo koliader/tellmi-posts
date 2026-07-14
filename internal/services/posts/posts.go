@@ -43,3 +43,30 @@ func (s *Service) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*db.Post
 	}
 	return &post, nil
 }
+
+func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq) (*db.Post, error) {
+	arg := db.EditPostParams{
+		ID:          int32(req.GetId()),
+		Title:       req.GetTitle(),
+		Description: req.GetDescription(),
+	}
+	post, err := s.store.EditPost(ctx, arg)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
+		}
+		return nil, grpc_err.ErrorResponse(codes.Internal, "error to edit post: %v", err)
+	}
+	return &post, nil
+}
+
+func (s *Service) DeletePost(ctx context.Context, req *pb.GetByIDReq) error {
+	err := s.store.DeletePost(ctx, int32(req.GetId()))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return grpc_err.ErrorResponse(codes.NotFound, notFound)
+		}
+		return grpc_err.ErrorResponse(codes.Internal, "error to delete post: %v", err)
+	}
+	return nil
+}

@@ -10,6 +10,8 @@ service Posts {
   rpc Createpost(CreatePost) returns (Success) {}
   rpc ListPosts(Empty) returns (ListPostsRes) {}
   rpc GetPostByID(GetByIDReq) returns (Post) {} 
+  rpc EditPost(EditPostReq) returns (Success) {}
+  rpc DeletePost(GetByIDReq) returns (Success) {}
 }
 
 message CreatePost {
@@ -24,4 +26,10 @@ message ListPostsRes {
 
 message GetByIDReq {
   int64 id = 1;
+}
+
+message EditPostReq {
+  int64 id = 1;
+  string title = 2;
+  string description = 3;
 }

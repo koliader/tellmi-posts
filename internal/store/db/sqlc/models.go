@@ -4,6 +4,11 @@
 
 package db
 
+type Category struct {
+	ID       int32  `json:"id"`
+	Category string `json:"category"`
+}
+
 type Comment struct {
 	ID      int32  `json:"id"`
 	Comment string `json:"comment"`
@@ -16,4 +21,5 @@ type Post struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Author      string `json:"author"`
+	CategoryID  int32  `json:"category_id"`
 }

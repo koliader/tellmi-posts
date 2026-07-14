@@ -10,13 +10,13 @@ import (
 )
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO "Posts" (
+INSERT INTO posts (
   title,
   description,
   author
 ) VALUES (
   $1, $2, $3
-) RETURNING id, title, description, author
+) RETURNING id, title, description, author, category_id
 `
 
 type CreatePostParams struct {
@@ -33,12 +33,50 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 		&i.Title,
 		&i.Description,
 		&i.Author,
+		&i.CategoryID,
+	)
+	return i, err
+}
+
+const deletePost = `-- name: DeletePost :exec
+DELETE FROM posts
+WHERE id = $1
+`
+
+func (q *Queries) DeletePost(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deletePost, id)
+	return err
+}
+
+const editPost = `-- name: EditPost :one
+UPDATE posts
+SET title = $2,
+description = $3
+WHERE id = $1
+RETURNING id, title, description, author, category_id
+`
+
+type EditPostParams struct {
+	ID          int32  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+func (q *Queries) EditPost(ctx context.Context, arg EditPostParams) (Post, error) {
+	row := q.db.QueryRow(ctx, editPost, arg.ID, arg.Title, arg.Description)
+	var i Post
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Author,
+		&i.CategoryID,
 	)
 	return i, err
 }
 
 const getPostByID = `-- name: GetPostByID :one
-SELECT id, title, description, author FROM "Posts"
+SELECT id, title, description, author, category_id FROM posts
 WHERE id = $1
 `
 
@@ -50,12 +88,13 @@ func (q *Queries) GetPostByID(ctx context.Context, id int32) (Post, error) {
 		&i.Title,
 		&i.Description,
 		&i.Author,
+		&i.CategoryID,
 	)
 	return i, err
 }
 
 const listPosts = `-- name: ListPosts :many
-SELECT id, title, description, author FROM "Posts"
+SELECT id, title, description, author, category_id FROM posts
 `
 
 func (q *Queries) ListPosts(ctx context.Context) ([]Post, error) {
@@ -72,6 +111,7 @@ func (q *Queries) ListPosts(ctx context.Context) ([]Post, error) {
 			&i.Title,
 			&i.Description,
 			&i.Author,
+			&i.CategoryID,
 		); err != nil {
 			return nil, err
 		}

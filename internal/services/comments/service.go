@@ -1,4 +1,4 @@
-package posts_service
+package comments_service
 
 import (
 	"github.com/koliader/tellmi-posts/internal/lib/config"

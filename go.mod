@@ -1,4 +1,4 @@
-module github.com/koliadertellmi-posts
+module github.com/koliader/tellmi-posts
 
 go 1.26.5
 

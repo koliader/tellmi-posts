@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	db_err "github.com/koliadertellmi-posts/internal/lib/error/db"
-	grpc_err "github.com/koliadertellmi-posts/internal/lib/error/service"
-	pb "github.com/koliadertellmi-posts/internal/pb"
-	db "github.com/koliadertellmi-posts/internal/store/db/sqlc"
+	db_err "github.com/koliader/tellmi-posts/internal/lib/error/db"
+	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
+	pb "github.com/koliader/tellmi-posts/internal/pb"
+	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
 

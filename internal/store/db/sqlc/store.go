@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/koliadertellmi-posts/internal/lib/config"
+	"github.com/koliader/tellmi-posts/internal/lib/config"
 )
 
 type Store struct {

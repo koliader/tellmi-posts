@@ -1,8 +1,8 @@
 package categories_service
 
 import (
-	"github.com/koliadertellmi-posts/internal/lib/config"
-	db "github.com/koliadertellmi-posts/internal/store/db/sqlc"
+	"github.com/koliader/tellmi-posts/internal/lib/config"
+	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 )
 
 type Service struct {

@@ -21,7 +21,7 @@ INSERT INTO comments (
 
 type CreateCommentParams struct {
 	Comment string `json:"comment"`
-	PostID  *int32 `json:"post_id"`
+	PostID  int64  `json:"post_id"`
 	Author  string `json:"author"`
 }
 
@@ -42,7 +42,7 @@ DELETE FROM comments
 WHERE id = $1
 `
 
-func (q *Queries) DeleteComment(ctx context.Context, id int32) error {
+func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
 	_, err := q.db.Exec(ctx, deleteComment, id)
 	return err
 }
@@ -55,7 +55,7 @@ RETURNING id, comment, post_id, author
 `
 
 type EditCommentParams struct {
-	ID      int32  `json:"id"`
+	ID      int64  `json:"id"`
 	Comment string `json:"comment"`
 }
 
@@ -76,7 +76,7 @@ SELECT id, comment, post_id, author FROM comments
 WHERE post_id = $1
 `
 
-func (q *Queries) ListCommentsByPost(ctx context.Context, postID *int32) ([]Comment, error) {
+func (q *Queries) ListCommentsByPost(ctx context.Context, postID int64) ([]Comment, error) {
 	rows, err := q.db.Query(ctx, listCommentsByPost, postID)
 	if err != nil {
 		return nil, err

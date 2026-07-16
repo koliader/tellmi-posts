@@ -32,7 +32,7 @@ func (s *Service) ListCategories(ctx context.Context) (*[]db.Category, error) {
 
 func (s *Service) EditCategory(ctx context.Context, req *pb.EditCategoryReq) error {
 	arg := db.EditCategoryParams{
-		ID:   int32(req.GetId()),
+		ID:   req.GetId(),
 		Name: req.GetName(),
 	}
 	err := s.store.EditCategory(ctx, arg)

@@ -25,6 +25,11 @@ message Comment {
   string author = 4;
 }
 
+message Category {
+  int64 id = 1;
+  string name = 2;
+}
+
 message Empty {}
 
 message Success {

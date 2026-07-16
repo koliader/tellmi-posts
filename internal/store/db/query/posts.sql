@@ -2,9 +2,10 @@
 INSERT INTO posts (
   title,
   description,
-  author
+  author,
+  category_id
 ) VALUES (
-  $1, $2, $3
+  $1, $2, $3, $4
 ) RETURNING *;
 
 -- name: ListPosts :many
@@ -17,7 +18,8 @@ WHERE id = $1;
 -- name: EditPost :one
 UPDATE posts
 SET title = $2,
-description = $3
+description = $3,
+category_id = $4
 WHERE id = $1
 RETURNING *;
 

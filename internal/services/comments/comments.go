@@ -13,10 +13,9 @@ import (
 const notFound = "comment not found"
 
 func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (*db.Comment, error) {
-	postID := int32(req.GetPostId())
 	arg := db.CreateCommentParams{
 		Comment: req.GetComment(),
-		PostID:  &postID,
+		PostID:  req.GetPostId(),
 		Author:  req.GetAuthor(),
 	}
 	comment, err := s.store.CreateComment(ctx, arg)
@@ -27,8 +26,7 @@ func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (
 }
 
 func (s *Service) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*[]db.Comment, error) {
-	postID := int32(req.GetId())
-	comments, err := s.store.ListCommentsByPost(ctx, &postID)
+	comments, err := s.store.ListCommentsByPost(ctx, req.GetId())
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to list comments: %v", err)
 	}
@@ -37,7 +35,7 @@ func (s *Service) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*
 
 func (s *Service) EditComment(ctx context.Context, req *pb.EditCommentReq) (*db.Comment, error) {
 	arg := db.EditCommentParams{
-		ID:      int32(req.GetId()),
+		ID:      req.GetId(),
 		Comment: req.GetComment(),
 	}
 	comment, err := s.store.EditComment(ctx, arg)
@@ -51,7 +49,7 @@ func (s *Service) EditComment(ctx context.Context, req *pb.EditCommentReq) (*db.
 }
 
 func (s *Service) DeleteComment(ctx context.Context, req *pb.GetByIDReq) error {
-	err := s.store.DeleteComment(ctx, int32(req.GetId()))
+	err := s.store.DeleteComment(ctx, req.GetId())
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return grpc_err.ErrorResponse(codes.NotFound, notFound)

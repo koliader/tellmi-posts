@@ -5,21 +5,21 @@
 package db
 
 type Category struct {
-	ID   int32  `json:"id"`
+	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
 type Comment struct {
-	ID      int32  `json:"id"`
+	ID      int64  `json:"id"`
 	Comment string `json:"comment"`
-	PostID  *int32 `json:"post_id"`
+	PostID  int64  `json:"post_id"`
 	Author  string `json:"author"`
 }
 
 type Post struct {
-	ID          int32  `json:"id"`
+	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Author      string `json:"author"`
-	CategoryID  int32  `json:"category_id"`
+	CategoryID  int64  `json:"category_id"`
 }

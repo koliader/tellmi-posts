@@ -12,11 +12,12 @@ import (
 
 const notFound = "post not found"
 
-func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePost) (*db.Post, error) {
+func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*db.Post, error) {
 	arg := db.CreatePostParams{
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
 		Author:      req.GetAuthor(),
+		CategoryID:  req.GetCategoryId(),
 	}
 	post, err := s.store.CreatePost(ctx, arg)
 	if err != nil {
@@ -34,7 +35,7 @@ func (s *Service) ListPosts(ctx context.Context) (*[]db.Post, error) {
 }
 
 func (s *Service) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*db.Post, error) {
-	post, err := s.store.GetPostByID(ctx, int32(req.GetId()))
+	post, err := s.store.GetPostByID(ctx, req.GetId())
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
@@ -46,7 +47,7 @@ func (s *Service) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*db.Post
 
 func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq) (*db.Post, error) {
 	arg := db.EditPostParams{
-		ID:          int32(req.GetId()),
+		ID:          req.GetId(),
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
 	}
@@ -61,7 +62,7 @@ func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq) (*db.Post, 
 }
 
 func (s *Service) DeletePost(ctx context.Context, req *pb.GetByIDReq) error {
-	err := s.store.DeletePost(ctx, int32(req.GetId()))
+	err := s.store.DeletePost(ctx, req.GetId())
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return grpc_err.ErrorResponse(codes.NotFound, notFound)

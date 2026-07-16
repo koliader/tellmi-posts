@@ -31,7 +31,7 @@ WHERE id = $1
 `
 
 type EditCategoryParams struct {
-	ID   int32  `json:"id"`
+	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -45,7 +45,7 @@ SELECT id, name FROM categories
 WHERE id = $1
 `
 
-func (q *Queries) GetCategoryById(ctx context.Context, id int32) (Category, error) {
+func (q *Queries) GetCategoryById(ctx context.Context, id int64) (Category, error) {
 	row := q.db.QueryRow(ctx, getCategoryById, id)
 	var i Category
 	err := row.Scan(&i.ID, &i.Name)

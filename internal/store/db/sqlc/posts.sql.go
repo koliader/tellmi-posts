@@ -13,9 +13,10 @@ const createPost = `-- name: CreatePost :one
 INSERT INTO posts (
   title,
   description,
-  author
+  author,
+  category_id
 ) VALUES (
-  $1, $2, $3
+  $1, $2, $3, $4
 ) RETURNING id, title, description, author, category_id
 `
 
@@ -23,10 +24,16 @@ type CreatePostParams struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Author      string `json:"author"`
+	CategoryID  int64  `json:"category_id"`
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
-	row := q.db.QueryRow(ctx, createPost, arg.Title, arg.Description, arg.Author)
+	row := q.db.QueryRow(ctx, createPost,
+		arg.Title,
+		arg.Description,
+		arg.Author,
+		arg.CategoryID,
+	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
@@ -43,7 +50,7 @@ DELETE FROM posts
 WHERE id = $1
 `
 
-func (q *Queries) DeletePost(ctx context.Context, id int32) error {
+func (q *Queries) DeletePost(ctx context.Context, id int64) error {
 	_, err := q.db.Exec(ctx, deletePost, id)
 	return err
 }
@@ -51,19 +58,26 @@ func (q *Queries) DeletePost(ctx context.Context, id int32) error {
 const editPost = `-- name: EditPost :one
 UPDATE posts
 SET title = $2,
-description = $3
+description = $3,
+category_id = $4
 WHERE id = $1
 RETURNING id, title, description, author, category_id
 `
 
 type EditPostParams struct {
-	ID          int32  `json:"id"`
+	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	CategoryID  int64  `json:"category_id"`
 }
 
 func (q *Queries) EditPost(ctx context.Context, arg EditPostParams) (Post, error) {
-	row := q.db.QueryRow(ctx, editPost, arg.ID, arg.Title, arg.Description)
+	row := q.db.QueryRow(ctx, editPost,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.CategoryID,
+	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
@@ -80,7 +94,7 @@ SELECT id, title, description, author, category_id FROM posts
 WHERE id = $1
 `
 
-func (q *Queries) GetPostByID(ctx context.Context, id int32) (Post, error) {
+func (q *Queries) GetPostByID(ctx context.Context, id int64) (Post, error) {
 	row := q.db.QueryRow(ctx, getPostByID, id)
 	var i Post
 	err := row.Scan(

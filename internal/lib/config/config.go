@@ -2,14 +2,17 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	DBSource      string `mapstructure:"DB_SOURCE"`
-	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
-	Environment   string `mapstructure:"ENVIRONMENT"`
+	DBSource            string        `mapstructure:"DB_SOURCE"`
+	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
+	TokenKey            string        `mapstructure:"TOKEN_KEY"`
+	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	Environment         string        `mapstructure:"ENVIRONMENT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -29,8 +32,10 @@ func LoadConfig(path string) (config Config, err error) {
 func LoadKuberConfig() (config Config, err error) {
 
 	return Config{
-		DBSource:      os.Getenv("DB_SOURCE"),
-		ServerAddress: os.Getenv("SERVER_ADDRESS"),
-		Environment:   os.Getenv("ENVIRONMENT"),
+		DBSource:            os.Getenv("DB_SOURCE"),
+		ServerAddress:       os.Getenv("SERVER_ADDRESS"),
+		TokenKey:            os.Getenv("TOKEN_KEY"),
+		AccessTokenDuration: 720 * time.Hour,
+		Environment:         os.Getenv("ENVIRONMENT"),
 	}, nil
 }

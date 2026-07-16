@@ -16,7 +16,7 @@ func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*db.Po
 	arg := db.CreatePostParams{
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
-		Author:      req.GetAuthor(),
+		UserID:      req.GetUserId(),
 		CategoryID:  req.GetCategoryId(),
 	}
 	post, err := s.store.CreatePost(ctx, arg)

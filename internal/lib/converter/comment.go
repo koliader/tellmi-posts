@@ -12,7 +12,7 @@ func ConvertComment(comment db.Comment) *pb.Comment {
 		Id:      comment.ID,
 		Comment: comment.Comment,
 		PostId:  comment.PostID,
-		Author:  comment.Author,
+		UserId:  comment.UserID,
 	}
 }
 

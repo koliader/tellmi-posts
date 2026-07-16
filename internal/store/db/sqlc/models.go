@@ -13,7 +13,7 @@ type Comment struct {
 	ID      int64  `json:"id"`
 	Comment string `json:"comment"`
 	PostID  int64  `json:"post_id"`
-	Author  string `json:"author"`
+	UserID  int64  `json:"user_id"`
 }
 
 type Post struct {

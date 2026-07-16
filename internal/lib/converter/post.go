@@ -12,7 +12,7 @@ func ConvertPost(post db.Post) *pb.Post {
 		Id:          post.ID,
 		Title:       post.Title,
 		Description: post.Description,
-		Author:      post.Author,
+		UserId:      post.UserID,
 	}
 }
 

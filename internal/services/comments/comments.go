@@ -16,7 +16,7 @@ func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (
 	arg := db.CreateCommentParams{
 		Comment: req.GetComment(),
 		PostID:  req.GetPostId(),
-		Author:  req.GetAuthor(),
+		UserID:  req.GetUserId(),
 	}
 	comment, err := s.store.CreateComment(ctx, arg)
 	if err != nil {

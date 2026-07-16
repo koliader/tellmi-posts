@@ -13,26 +13,26 @@ const createComment = `-- name: CreateComment :one
 INSERT INTO comments (
   comment,
   post_id,
-  author
+  user_id
 ) VALUES (
   $1, $2, $3
-) RETURNING id, comment, post_id, author
+) RETURNING id, comment, post_id, user_id
 `
 
 type CreateCommentParams struct {
 	Comment string `json:"comment"`
 	PostID  int64  `json:"post_id"`
-	Author  string `json:"author"`
+	UserID  int64  `json:"user_id"`
 }
 
 func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (Comment, error) {
-	row := q.db.QueryRow(ctx, createComment, arg.Comment, arg.PostID, arg.Author)
+	row := q.db.QueryRow(ctx, createComment, arg.Comment, arg.PostID, arg.UserID)
 	var i Comment
 	err := row.Scan(
 		&i.ID,
 		&i.Comment,
 		&i.PostID,
-		&i.Author,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -51,7 +51,7 @@ const editComment = `-- name: EditComment :one
 UPDATE comments
 SET comment = $2
 WHERE id = $1
-RETURNING id, comment, post_id, author
+RETURNING id, comment, post_id, user_id
 `
 
 type EditCommentParams struct {
@@ -66,13 +66,13 @@ func (q *Queries) EditComment(ctx context.Context, arg EditCommentParams) (Comme
 		&i.ID,
 		&i.Comment,
 		&i.PostID,
-		&i.Author,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const listCommentsByPost = `-- name: ListCommentsByPost :many
-SELECT id, comment, post_id, author FROM comments
+SELECT id, comment, post_id, user_id FROM comments
 WHERE post_id = $1
 `
 
@@ -89,7 +89,7 @@ func (q *Queries) ListCommentsByPost(ctx context.Context, postID int64) ([]Comme
 			&i.ID,
 			&i.Comment,
 			&i.PostID,
-			&i.Author,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}

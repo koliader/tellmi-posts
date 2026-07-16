@@ -13,17 +13,17 @@ const createPost = `-- name: CreatePost :one
 INSERT INTO posts (
   title,
   description,
-  author,
+  user_id,
   category_id
 ) VALUES (
   $1, $2, $3, $4
-) RETURNING id, title, description, author, category_id
+) RETURNING id, title, description, user_id, category_id
 `
 
 type CreatePostParams struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Author      string `json:"author"`
+	UserID      int64  `json:"user_id"`
 	CategoryID  int64  `json:"category_id"`
 }
 
@@ -31,7 +31,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 	row := q.db.QueryRow(ctx, createPost,
 		arg.Title,
 		arg.Description,
-		arg.Author,
+		arg.UserID,
 		arg.CategoryID,
 	)
 	var i Post
@@ -39,7 +39,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 		&i.ID,
 		&i.Title,
 		&i.Description,
-		&i.Author,
+		&i.UserID,
 		&i.CategoryID,
 	)
 	return i, err
@@ -61,7 +61,7 @@ SET title = $2,
 description = $3,
 category_id = $4
 WHERE id = $1
-RETURNING id, title, description, author, category_id
+RETURNING id, title, description, user_id, category_id
 `
 
 type EditPostParams struct {
@@ -83,14 +83,14 @@ func (q *Queries) EditPost(ctx context.Context, arg EditPostParams) (Post, error
 		&i.ID,
 		&i.Title,
 		&i.Description,
-		&i.Author,
+		&i.UserID,
 		&i.CategoryID,
 	)
 	return i, err
 }
 
 const getPostByID = `-- name: GetPostByID :one
-SELECT id, title, description, author, category_id FROM posts
+SELECT id, title, description, user_id, category_id FROM posts
 WHERE id = $1
 `
 
@@ -101,14 +101,14 @@ func (q *Queries) GetPostByID(ctx context.Context, id int64) (Post, error) {
 		&i.ID,
 		&i.Title,
 		&i.Description,
-		&i.Author,
+		&i.UserID,
 		&i.CategoryID,
 	)
 	return i, err
 }
 
 const listPosts = `-- name: ListPosts :many
-SELECT id, title, description, author, category_id FROM posts
+SELECT id, title, description, user_id, category_id FROM posts
 `
 
 func (q *Queries) ListPosts(ctx context.Context) ([]Post, error) {
@@ -124,7 +124,7 @@ func (q *Queries) ListPosts(ctx context.Context) ([]Post, error) {
 			&i.ID,
 			&i.Title,
 			&i.Description,
-			&i.Author,
+			&i.UserID,
 			&i.CategoryID,
 		); err != nil {
 			return nil, err

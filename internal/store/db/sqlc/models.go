@@ -20,6 +20,11 @@ type Post struct {
 	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Author      string `json:"author"`
+	UserID      int64  `json:"user_id"`
 	CategoryID  int64  `json:"category_id"`
+}
+
+type User struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
 }

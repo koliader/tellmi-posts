@@ -2,7 +2,7 @@
 INSERT INTO posts (
   title,
   description,
-  author,
+  user_id,
   category_id
 ) VALUES (
   $1, $2, $3, $4

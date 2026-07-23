@@ -12,10 +12,10 @@ import (
 // Posts
 
 func (s *Server) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*pb.Post, error) {
-	// _, err := s.middleware.AuthorizeUser(ctx)
-	// if err != nil {
-	// 	return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
-	// }
+	_, err := s.middleware.AuthorizeUser(ctx)
+	if err != nil {
+		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+	}
 
 	post, err := s.posts_service.CreatePost(ctx, req)
 	if err != nil {

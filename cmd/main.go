@@ -37,7 +37,21 @@ func main() {
 	defer connPool.Close()
 	store := db.NewStore(connPool)
 
-	runGrpcServer(config, store)
+	go runGrpcServer(config, store)
+
+	server, err := posts_server.NewServer(config, store)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("error creating posts server: %v", err)
+	}
+	err = server.ConsumeUserUpdated()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("error starting RabbitMQ update user consumer: %v", err)
+	}
+	err = server.ConsumeUserCreated()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("error starting RabbitMQ user created consumer: %v", err)
+	}
+	select {}
 }
 
 func runGrpcServer(config config.Config, store db.Store) {

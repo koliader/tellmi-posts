@@ -8,7 +8,13 @@ INSERT INTO users (
 -- name: ListUsers :many
 SELECT * FROM users;
 
--- name: UpdateUsers :exec
-UPDATE users
-SET username = $2
+-- name: GetUser :one
+SELECT * FROM users
 WHERE id = $1;
+
+-- name: UpdateUser :one
+-- name: UpdateUser :one
+UPDATE users
+SET username = sqlc.arg(new_username)
+WHERE username = sqlc.arg(username)
+RETURNING *;

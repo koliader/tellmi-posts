@@ -71,6 +71,61 @@ func (q *Queries) EditComment(ctx context.Context, arg EditCommentParams) (Comme
 	return i, err
 }
 
+const getComment = `-- name: GetComment :one
+SELECT
+    c.id,
+    c.comment,
+    c.post_id,
+    c.user_id,
+    cu.username   AS commenter_username,
+    p.title       AS post_title,
+    p.description AS post_description,
+    p.user_id     AS post_author_id,
+    pu.username   AS post_author_username,
+    cat.id        AS category_id,
+    cat.name      AS category_name
+FROM comments c
+    JOIN posts p       ON p.id = c.post_id
+    JOIN users cu      ON cu.id = c.user_id     -- comment author
+    JOIN users pu      ON pu.id = p.user_id     -- post author
+    JOIN categories cat ON cat.id = p.category_id
+WHERE c.id = $1
+ORDER BY c.id
+`
+
+type GetCommentRow struct {
+	ID                 int64  `json:"id"`
+	Comment            string `json:"comment"`
+	PostID             int64  `json:"post_id"`
+	UserID             int64  `json:"user_id"`
+	CommenterUsername  string `json:"commenter_username"`
+	PostTitle          string `json:"post_title"`
+	PostDescription    string `json:"post_description"`
+	PostAuthorID       int64  `json:"post_author_id"`
+	PostAuthorUsername string `json:"post_author_username"`
+	CategoryID         int64  `json:"category_id"`
+	CategoryName       string `json:"category_name"`
+}
+
+func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, error) {
+	row := q.db.QueryRow(ctx, getComment, id)
+	var i GetCommentRow
+	err := row.Scan(
+		&i.ID,
+		&i.Comment,
+		&i.PostID,
+		&i.UserID,
+		&i.CommenterUsername,
+		&i.PostTitle,
+		&i.PostDescription,
+		&i.PostAuthorID,
+		&i.PostAuthorUsername,
+		&i.CategoryID,
+		&i.CategoryName,
+	)
+	return i, err
+}
+
 const listCommentsByPost = `-- name: ListCommentsByPost :many
 SELECT
     c.id,

@@ -16,17 +16,17 @@ func ConvertPost(post db.Post) *pb.Post {
 		CategoryId:  post.CategoryID,
 	}
 }
+
 func ConvertListPostRow(post db.ListPostsRow) *pb.PostRow {
 	category := pb.Category{Id: post.CategoryID, Name: post.Name}
 	user := pb.User{Id: post.UserID, Username: post.Username}
-	converttedPost := pb.PostRow{
+	return &pb.PostRow{
 		Id:          post.ID,
 		Title:       post.Title,
 		Description: post.Description,
 		User:        &user,
 		Category:    &category,
 	}
-	return &converttedPost
 }
 
 var postsRowPool = sync.Pool{
@@ -43,7 +43,6 @@ func ConverPostRows(rows []db.ListPostsRow) []*pb.PostRow {
 		converted = append(converted, ConvertListPostRow(*r))
 		postsRowPool.Put(r)
 	}
-
 	return converted
 }
 

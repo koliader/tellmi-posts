@@ -90,19 +90,34 @@ func (q *Queries) EditPost(ctx context.Context, arg EditPostParams) (Post, error
 }
 
 const getPostByID = `-- name: GetPostByID :one
-SELECT id, title, description, user_id, category_id FROM posts
-WHERE id = $1
+SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name 
+FROM posts AS p 
+JOIN users AS u ON p.user_id = u.id 
+JOIN categories AS c ON p.category_id = c.id 
+WHERE p.id = $1
 `
 
-func (q *Queries) GetPostByID(ctx context.Context, id int64) (Post, error) {
+type GetPostByIDRow struct {
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	UserID      int64  `json:"user_id"`
+	Username    string `json:"username"`
+	CategoryID  int64  `json:"category_id"`
+	Name        string `json:"name"`
+}
+
+func (q *Queries) GetPostByID(ctx context.Context, id int64) (GetPostByIDRow, error) {
 	row := q.db.QueryRow(ctx, getPostByID, id)
-	var i Post
+	var i GetPostByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
 		&i.Description,
 		&i.UserID,
+		&i.Username,
 		&i.CategoryID,
+		&i.Name,
 	)
 	return i, err
 }

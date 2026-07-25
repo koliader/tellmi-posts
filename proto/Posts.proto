@@ -10,8 +10,8 @@ service Posts {
   //posts
   rpc CreatePost(CreatePostReq) returns (Post) {}
   rpc ListPosts(Empty) returns (ListPostsRes) {}
-  rpc GetPostByID(GetByIDReq) returns (Post) {} 
-  rpc EditPost(EditPostReq) returns (Success) {}
+  rpc GetPostByID(GetByIDReq) returns (PostRow) {}
+  rpc EditPost(EditPostReq) returns (Post) {}
   rpc DeletePost(GetByIDReq) returns (Success) {}
 
   //categories
@@ -22,7 +22,7 @@ service Posts {
   //comments
   rpc CreateComment(CreateCommentReq) returns (Comment) {}
   rpc ListCommentsByPost(GetByIDReq) returns (ListCommentsRes) {}
-  rpc EditComment(EditCommentReq) returns (Success) {}
+  rpc EditComment(EditCommentReq) returns (Comment) {}
   rpc DeleteComment(GetByIDReq) returns (Success) {}
 }
 
@@ -44,6 +44,7 @@ message EditPostReq {
   int64 id = 1;
   string title = 2;
   string description = 3;
+  int64 categoryId = 4;
 }
 
 message ListCategoriesRes {

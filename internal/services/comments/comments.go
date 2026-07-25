@@ -42,23 +42,43 @@ func (s *Service) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*
 	return &comments, nil
 }
 
-func (s *Service) EditComment(ctx context.Context, req *pb.EditCommentReq) (*db.Comment, error) {
+func (s *Service) EditComment(ctx context.Context, req *pb.EditCommentReq, payload *token.Payload) (*db.Comment, error) {
+	comment, err := s.store.GetComment(ctx, req.GetId())
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
+		}
+		return nil, grpc_err.ErrorResponse(codes.Internal, "error to get comment: %v", err)
+	}
+	if payload.Username != comment.CommenterUsername {
+		return nil, grpc_err.ErrorResponse(codes.PermissionDenied, "you have no access to edit this comment")
+	}
 	arg := db.EditCommentParams{
 		ID:      req.GetId(),
 		Comment: req.GetComment(),
 	}
-	comment, err := s.store.EditComment(ctx, arg)
+	updatedComment, err := s.store.EditComment(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
 		}
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to edit comment: %v", err)
 	}
-	return &comment, nil
+	return &updatedComment, nil
 }
 
-func (s *Service) DeleteComment(ctx context.Context, req *pb.GetByIDReq) error {
-	err := s.store.DeleteComment(ctx, req.GetId())
+func (s *Service) DeleteComment(ctx context.Context, req *pb.GetByIDReq, payload *token.Payload) error {
+	comment, err := s.store.GetComment(ctx, req.GetId())
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return grpc_err.ErrorResponse(codes.NotFound, notFound)
+		}
+		return grpc_err.ErrorResponse(codes.Internal, "error to get comment: %v", err)
+	}
+	if payload.Username != comment.CommenterUsername {
+		return grpc_err.ErrorResponse(codes.PermissionDenied, "you have no access to edit this comment")
+	}
+	err = s.store.DeleteComment(ctx, req.GetId())
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return grpc_err.ErrorResponse(codes.NotFound, notFound)

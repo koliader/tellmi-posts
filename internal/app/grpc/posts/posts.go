@@ -6,6 +6,7 @@ import (
 	"github.com/koliader/tellmi-posts/internal/lib/converter"
 	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
 	pb "github.com/koliader/tellmi-posts/internal/pb"
+	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
 
@@ -34,34 +35,42 @@ func (s *Server) ListPosts(ctx context.Context, req *pb.Empty) (*pb.ListPostsRes
 	return &res, nil
 }
 
-func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.Post, error) {
+func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.PostRow, error) {
 	post, err := s.posts_service.GetPostByID(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return converter.ConvertListPostRow(db.ListPostsRow{
+		ID:          post.ID,
+		Title:       post.Title,
+		Description: post.Description,
+		UserID:      post.UserID,
+		Username:    post.Username,
+		CategoryID:  post.CategoryID,
+		Name:        post.Name,
+	}), nil
+}
+
+func (s *Server) EditPost(ctx context.Context, req *pb.EditPostReq) (*pb.Post, error) {
+	payload, err := s.middleware.AuthorizeUser(ctx)
+	if err != nil {
+		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+	}
+
+	post, err := s.posts_service.EditPost(ctx, req, payload)
 	if err != nil {
 		return nil, err
 	}
 	return converter.ConvertPost(*post), nil
 }
 
-func (s *Server) EditPost(ctx context.Context, req *pb.EditPostReq) (*pb.Success, error) {
-	_, err := s.middleware.AuthorizeUser(ctx)
-	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
-	}
-
-	_, err = s.posts_service.EditPost(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.Success{Message: "post updated"}, nil
-}
-
 func (s *Server) DeletePost(ctx context.Context, req *pb.GetByIDReq) (*pb.Success, error) {
-	_, err := s.middleware.AuthorizeUser(ctx)
+	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
-	err = s.posts_service.DeletePost(ctx, req)
+	err = s.posts_service.DeletePost(ctx, req, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +79,13 @@ func (s *Server) DeletePost(ctx context.Context, req *pb.GetByIDReq) (*pb.Succes
 
 // Categories
 
+// TODO access only for ADMIN
 func (s *Server) CreateCategory(ctx context.Context, req *pb.CreateCategoryReq) (*pb.Category, error) {
-	// _, err := s.middleware.AuthorizeAdmin(ctx)
-	// if err != nil {
-	// 	return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize admin: %v", err)
-	// }
+	_, err := s.middleware.AuthorizeAdmin(ctx)
+	if err != nil {
+		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize admin: %v", err)
 
+	}
 	category, err := s.categories_service.CreateCategory(ctx, req)
 	if err != nil {
 		return nil, err
@@ -91,6 +101,7 @@ func (s *Server) ListCategories(ctx context.Context, req *pb.Empty) (*pb.ListCat
 	return &pb.ListCategoriesRes{Categories: converter.ConvertCategories(*categories)}, nil
 }
 
+// TODO access only for ADMIN
 func (s *Server) EditCategory(ctx context.Context, req *pb.EditCategoryReq) (*pb.Success, error) {
 	_, err := s.middleware.AuthorizeAdmin(ctx)
 	if err != nil {
@@ -128,26 +139,26 @@ func (s *Server) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*p
 	return &pb.ListCommentsRes{Comments: convertedComments}, nil
 }
 
-func (s *Server) EditComment(ctx context.Context, req *pb.EditCommentReq) (*pb.Success, error) {
-	_, err := s.middleware.AuthorizeUser(ctx)
+func (s *Server) EditComment(ctx context.Context, req *pb.EditCommentReq) (*pb.Comment, error) {
+	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
-	_, err = s.comments_service.EditComment(ctx, req)
+	comment, err := s.comments_service.EditComment(ctx, req, payload)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Success{Message: "comment updated"}, nil
+	return converter.ConvertComment(*comment), nil
 }
 
 func (s *Server) DeleteComment(ctx context.Context, req *pb.GetByIDReq) (*pb.Success, error) {
-	_, err := s.middleware.AuthorizeUser(ctx)
+	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
-	err = s.comments_service.DeleteComment(ctx, req)
+	err = s.comments_service.DeleteComment(ctx, req, payload)
 	if err != nil {
 		return nil, err
 	}

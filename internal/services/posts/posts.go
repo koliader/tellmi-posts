@@ -2,7 +2,6 @@ package posts_service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	db_err "github.com/koliader/tellmi-posts/internal/lib/error/db"
@@ -13,7 +12,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// TODO ADD FOREIGN KEYS CHECKS
 const notFound = "post not found"
 
 func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload *token.Payload) (*db.Post, error) {
@@ -73,7 +71,6 @@ func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq, payload *to
 		Description: req.GetDescription(),
 		CategoryID:  req.GetCategoryId(),
 	}
-	fmt.Printf("%+v\n", arg)
 	updatedtPost, err := s.store.EditPost(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {

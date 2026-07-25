@@ -12,12 +12,11 @@ import (
 // Posts
 
 func (s *Server) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*pb.Post, error) {
-	_, err := s.middleware.AuthorizeUser(ctx)
+	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
-
-	post, err := s.posts_service.CreatePost(ctx, req)
+	post, err := s.posts_service.CreatePost(ctx, req, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +29,9 @@ func (s *Server) ListPosts(ctx context.Context, req *pb.Empty) (*pb.ListPostsRes
 	if err != nil {
 		return nil, err
 	}
-	return &pb.ListPostsRes{Posts: converter.ConvertPosts(*posts)}, nil
+	convertedPosts := converter.ConverPostRows(*posts)
+	res := pb.ListPostsRes{Posts: convertedPosts}
+	return &res, nil
 }
 
 func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.Post, error) {
@@ -106,12 +107,12 @@ func (s *Server) EditCategory(ctx context.Context, req *pb.EditCategoryReq) (*pb
 // Comments
 
 func (s *Server) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (*pb.Comment, error) {
-	_, err := s.middleware.AuthorizeUser(ctx)
+	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
-	comment, err := s.comments_service.CreateComment(ctx, req)
+	comment, err := s.comments_service.CreateComment(ctx, req, payload)
 	if err != nil {
 		return nil, err
 	}

@@ -7,15 +7,15 @@ import (
 )
 
 type Payload struct {
-	ID        int64     `json:"id"`
+	Username  string    `json:"username"`
 	Role      string    `json:"role"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expired_at"`
 }
 
-func NewPayload(id int64, role string, duration time.Duration) (*Payload, error) {
+func NewPayload(username string, role string, duration time.Duration) (*Payload, error) {
 	payload := &Payload{
-		ID:        id,
+		Username:  username,
 		Role:      role,
 		IssuedAt:  time.Now(),
 		ExpiredAt: time.Now().Add(duration),
@@ -24,6 +24,7 @@ func NewPayload(id int64, role string, duration time.Duration) (*Payload, error)
 }
 
 func (p *Payload) Valid() error {
+	// Check if the token is expired
 	if time.Now().After(p.ExpiredAt) {
 		return jwt.NewValidationError("token is expired", jwt.ValidationErrorExpired)
 	}

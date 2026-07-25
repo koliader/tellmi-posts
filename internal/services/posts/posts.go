@@ -4,29 +4,39 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	db_err "github.com/koliader/tellmi-posts/internal/lib/error/db"
 	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
+	"github.com/koliader/tellmi-posts/internal/lib/token"
 	pb "github.com/koliader/tellmi-posts/internal/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
 
+// TODO ADD FOREIGN KEYS CHECKS
 const notFound = "post not found"
 
-func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*db.Post, error) {
+func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload *token.Payload) (*db.Post, error) {
+	user, err := s.users_service.GetUser(ctx, &payload.Username)
+	if err != nil {
+		return nil, err
+	}
 	arg := db.CreatePostParams{
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
-		UserID:      req.GetUserId(),
 		CategoryID:  req.GetCategoryId(),
+		UserID:      user.ID,
 	}
 	post, err := s.store.CreatePost(ctx, arg)
 	if err != nil {
+		if db_err.ErrorCode(err) == db_err.ForeignKeyViolation {
+			return nil, grpc_err.ErrorResponse(codes.NotFound, "invalid category data")
+		}
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to create post: %v", err)
 	}
 	return &post, nil
 }
 
-func (s *Service) ListPosts(ctx context.Context) (*[]db.Post, error) {
+func (s *Service) ListPosts(ctx context.Context) (*[]db.ListPostsRow, error) {
 	posts, err := s.store.ListPosts(ctx)
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to list posts: %v", err)

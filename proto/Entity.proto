@@ -16,6 +16,14 @@ message Post {
   string title = 2;
   string description = 3;
   int64 userId = 4;
+  int64 categoryId = 5;
+}
+message PostRow {
+  int64 id = 1;
+  string title = 2;
+  string description = 3;
+  User user = 4;
+  Category category = 5;
 }
 
 message Comment {

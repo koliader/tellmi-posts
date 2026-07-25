@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	db_err "github.com/koliader/tellmi-posts/internal/lib/error/db"
 	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
+	"github.com/koliader/tellmi-posts/internal/lib/token"
 	pb "github.com/koliader/tellmi-posts/internal/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
@@ -12,14 +14,21 @@ import (
 
 const notFound = "comment not found"
 
-func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (*db.Comment, error) {
+func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq, payload *token.Payload) (*db.Comment, error) {
+	user, err := s.users_service.GetUser(ctx, &payload.Username)
+	if err != nil {
+		return nil, err
+	}
 	arg := db.CreateCommentParams{
 		Comment: req.GetComment(),
 		PostID:  req.GetPostId(),
-		UserID:  req.GetUserId(),
+		UserID:  user.ID,
 	}
 	comment, err := s.store.CreateComment(ctx, arg)
 	if err != nil {
+		if db_err.ErrorCode(err) == db_err.ForeignKeyViolation {
+			return nil, grpc_err.ErrorResponse(codes.NotFound, "invalid post or user data")
+		}
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to create comment: %v", err)
 	}
 	return &comment, nil

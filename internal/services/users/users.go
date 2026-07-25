@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+const userNotFound = "user not fond"
+
 func (s *Service) CreateUser(ctx context.Context, req *rabbitmq.UserCreated) (*db.User, error) {
 	user, err := s.store.CreateUser(ctx, req.Username)
 	if err != nil {
@@ -30,9 +32,20 @@ func (s *Service) UpdateUser(ctx context.Context, req *rabbitmq.UserUpdated) (*d
 	user, err := s.store.UpdateUser(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, grpc_err.ErrorResponse(codes.NotFound, "user not fond")
+			return nil, grpc_err.ErrorResponse(codes.NotFound, userNotFound)
 		}
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to update user: %v", err)
+	}
+	return &user, nil
+}
+
+func (s *Service) GetUser(ctx context.Context, username *string) (*db.User, error) {
+	user, err := s.store.GetUser(ctx, *username)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, grpc_err.ErrorResponse(codes.NotFound, userNotFound)
+		}
+		return nil, grpc_err.ErrorResponse(codes.Internal, "error to get user: %v", err)
 	}
 	return &user, nil
 }

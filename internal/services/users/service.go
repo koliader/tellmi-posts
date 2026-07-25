@@ -10,6 +10,6 @@ type Service struct {
 	store  db.Store
 }
 
-func NewService(config config.Config, store db.Store) *Service {
+func NewService(store db.Store, config config.Config) *Service {
 	return &Service{config, store}
 }

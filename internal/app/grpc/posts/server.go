@@ -42,7 +42,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	postsService := posts_service.NewService(store, config)
 	categoriesService := categories_service.NewServer(config, store)
 	commentsService := comments_service.NewService(store, config)
-	usersService := users_service.NewService(config, store)
+	usersService := users_service.NewService(store, config)
 	middleware := middleware.NewMiddleware(tokenMaker)
 
 	server := Server{

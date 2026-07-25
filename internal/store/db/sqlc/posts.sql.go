@@ -108,24 +108,37 @@ func (q *Queries) GetPostByID(ctx context.Context, id int64) (Post, error) {
 }
 
 const listPosts = `-- name: ListPosts :many
-SELECT id, title, description, user_id, category_id FROM posts
+SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name FROM posts AS p JOIN users AS u ON p.user_id = u.id JOIN categories AS c ON p.category_id = c.id
 `
 
-func (q *Queries) ListPosts(ctx context.Context) ([]Post, error) {
+type ListPostsRow struct {
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	UserID      int64  `json:"user_id"`
+	Username    string `json:"username"`
+	CategoryID  int64  `json:"category_id"`
+	Name        string `json:"name"`
+}
+
+// SELECT * FROM posts;
+func (q *Queries) ListPosts(ctx context.Context) ([]ListPostsRow, error) {
 	rows, err := q.db.Query(ctx, listPosts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Post{}
+	items := []ListPostsRow{}
 	for rows.Next() {
-		var i Post
+		var i ListPostsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
 			&i.Description,
 			&i.UserID,
+			&i.Username,
 			&i.CategoryID,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}

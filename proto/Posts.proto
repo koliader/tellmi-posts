@@ -70,5 +70,5 @@ message EditCommentReq {
 }
 
 message ListCommentsRes {
-  repeated Comment comments = 1;
+  repeated CommentRow comments = 1;
 }

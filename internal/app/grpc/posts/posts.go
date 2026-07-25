@@ -124,7 +124,8 @@ func (s *Server) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*p
 	if err != nil {
 		return nil, err
 	}
-	return &pb.ListCommentsRes{Comments: converter.ConvertComments(*comments)}, nil
+	convertedComments := converter.ConvertCommentRows(*comments)
+	return &pb.ListCommentsRes{Comments: convertedComments}, nil
 }
 
 func (s *Server) EditComment(ctx context.Context, req *pb.EditCommentReq) (*pb.Success, error) {

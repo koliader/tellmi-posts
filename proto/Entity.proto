@@ -33,6 +33,14 @@ message Comment {
   int64 userId = 4;
 }
 
+message CommentRow {
+  int64 id = 1;
+  string comment = 2;
+  int64 postId = 3;
+  User user = 4;
+  PostRow post = 5;
+}
+
 message Category {
   int64 id = 1;
   string name = 2;

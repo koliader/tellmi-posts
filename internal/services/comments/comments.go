@@ -34,7 +34,7 @@ func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq, p
 	return &comment, nil
 }
 
-func (s *Service) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*[]db.Comment, error) {
+func (s *Service) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*[]db.ListCommentsByPostRow, error) {
 	comments, err := s.store.ListCommentsByPost(ctx, req.GetId())
 	if err != nil {
 		return nil, grpc_err.ErrorResponse(codes.Internal, "error to list comments: %v", err)

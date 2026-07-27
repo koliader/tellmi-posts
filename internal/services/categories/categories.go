@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	db_err "github.com/koliader/tellmi-posts/internal/lib/error/db"
-	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
-	pb "github.com/koliader/tellmi-posts/internal/pb"
+	errdb "github.com/koliader/tellmi-sdk/errors/db"
+	errsvc "github.com/koliader/tellmi-sdk/errors/service"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
@@ -14,10 +14,10 @@ import (
 func (s *Service) CreateCategory(ctx context.Context, req *pb.CreateCategoryReq) (*db.Category, error) {
 	category, err := s.store.CreateCategory(ctx, req.GetName())
 	if err != nil {
-		if db_err.UniqueViolation == db_err.ErrorCode(err) {
-			return nil, grpc_err.ErrorResponse(codes.AlreadyExists, "category with this name already exists")
+		if errdb.UniqueViolation == errdb.ErrorCode(err) {
+			return nil, errsvc.ErrorResponse(codes.AlreadyExists, "category with this name already exists")
 		}
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to create category")
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to create category")
 	}
 	return &category, nil
 }
@@ -25,7 +25,7 @@ func (s *Service) CreateCategory(ctx context.Context, req *pb.CreateCategoryReq)
 func (s *Service) ListCategories(ctx context.Context) (*[]db.Category, error) {
 	categories, err := s.store.ListCategories(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to create category")
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to create category")
 	}
 	return &categories, nil
 }
@@ -38,10 +38,10 @@ func (s *Service) EditCategory(ctx context.Context, req *pb.EditCategoryReq) err
 	err := s.store.EditCategory(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return grpc_err.ErrorResponse(codes.NotFound, "category not found")
+			return errsvc.ErrorResponse(codes.NotFound, "category not found")
 		}
-		if db_err.UniqueViolation == db_err.ErrorCode(err) {
-			return grpc_err.ErrorResponse(codes.AlreadyExists, "category with this name already exists")
+		if errdb.UniqueViolation == errdb.ErrorCode(err) {
+			return errsvc.ErrorResponse(codes.AlreadyExists, "category with this name already exists")
 		}
 	}
 	return nil

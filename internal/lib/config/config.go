@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/viper"
+	sdkconfig "github.com/koliader/tellmi-sdk/config"
 )
 
 type Config struct {
@@ -16,22 +16,13 @@ type Config struct {
 	RbmUrl              string        `mapstructure:"RBM_URL"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		return
-	}
-	err = viper.Unmarshal(&config)
-	return
+func LoadConfig(path string) (Config, error) {
+	var cfg Config
+	err := sdkconfig.LoadConfig(path, &cfg)
+	return cfg, err
 }
 
-func LoadKuberConfig() (config Config, err error) {
-
+func LoadKuberConfig() (Config, error) {
 	return Config{
 		DBSource:            os.Getenv("DB_SOURCE"),
 		ServerAddress:       os.Getenv("SERVER_ADDRESS"),

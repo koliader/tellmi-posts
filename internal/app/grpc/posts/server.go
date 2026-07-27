@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/koliader/tellmi-posts/internal/lib/config"
-	"github.com/koliader/tellmi-posts/internal/lib/middleware"
-	"github.com/koliader/tellmi-posts/internal/lib/rabbitmq"
-	"github.com/koliader/tellmi-posts/internal/lib/token"
-	pb "github.com/koliader/tellmi-posts/internal/pb"
+	grpcmiddleware "github.com/koliader/tellmi-sdk/middleware"
+	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
+	"github.com/koliader/tellmi-sdk/token"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	categories_service "github.com/koliader/tellmi-posts/internal/services/categories"
 	comments_service "github.com/koliader/tellmi-posts/internal/services/comments"
+	localrabbitmq "github.com/koliader/tellmi-posts/internal/lib/rabbitmq"
 	posts_service "github.com/koliader/tellmi-posts/internal/services/posts"
 	users_service "github.com/koliader/tellmi-posts/internal/services/users"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
@@ -22,8 +23,8 @@ type Server struct {
 	posts_service      posts_service.Service
 	categories_service categories_service.Service
 	comments_service   comments_service.Service
-	middleware         middleware.Middleware
-	rabbitmqClient     *rabbitmq.Client
+	middleware         *grpcmiddleware.GrpcMiddleware
+	rabbitmqClient     *sdkrabbitmq.Client
 	users_service      *users_service.Service
 	token_maker        token.Maker
 }
@@ -34,7 +35,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		return nil, fmt.Errorf("error to create token maker: %v", err)
 	}
 
-	rabbitmqClient, err := rabbitmq.NewRabbitmqClient(config)
+	rabbitmqClient, err := sdkrabbitmq.NewClient(config.RbmUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error to create rabbitmq client: %v", err)
 	}
@@ -43,13 +44,13 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	categoriesService := categories_service.NewServer(config, store)
 	commentsService := comments_service.NewService(store, config)
 	usersService := users_service.NewService(store, config)
-	middleware := middleware.NewMiddleware(tokenMaker)
+	mw := grpcmiddleware.NewMiddleware(tokenMaker)
 
 	server := Server{
 		posts_service:      *postsService,
 		categories_service: *categoriesService,
 		comments_service:   *commentsService,
-		middleware:         *middleware,
+		middleware:         mw,
 		rabbitmqClient:     rabbitmqClient,
 		users_service:      usersService,
 		token_maker:        tokenMaker,
@@ -59,7 +60,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 }
 
 func (s *Server) ConsumeUserUpdated() error {
-	return s.rabbitmqClient.ConsumeUpdateUser(func(req rabbitmq.UserUpdated) error {
+	return localrabbitmq.ConsumeUpdateUser(s.rabbitmqClient, func(req sdkrabbitmq.UserUpdated) error {
 		log.Info().Msgf("received update user username: %v -> %s", req.Username, req.NewUsername)
 		user, err := s.users_service.UpdateUser(context.Background(), &req)
 		if err != nil {
@@ -72,7 +73,7 @@ func (s *Server) ConsumeUserUpdated() error {
 }
 
 func (s *Server) ConsumeUserCreated() error {
-	return s.rabbitmqClient.ConsumeUserCreated(func(req rabbitmq.UserCreated) error {
+	return localrabbitmq.ConsumeUserCreated(s.rabbitmqClient, func(req sdkrabbitmq.UserCreated) error {
 		log.Info().Msgf("received user created: username=%s", req.Username)
 		// TODO: implement actual logic for new user creation in posts
 

@@ -10,7 +10,7 @@ import (
 	posts_server "github.com/koliader/tellmi-posts/internal/app/grpc/posts"
 	"github.com/koliader/tellmi-posts/internal/lib/config"
 	"github.com/koliader/tellmi-posts/internal/lib/logger"
-	pb "github.com/koliader/tellmi-posts/internal/pb"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

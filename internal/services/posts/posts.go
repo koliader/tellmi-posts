@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	db_err "github.com/koliader/tellmi-posts/internal/lib/error/db"
-	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
-	"github.com/koliader/tellmi-posts/internal/lib/token"
-	pb "github.com/koliader/tellmi-posts/internal/pb"
+	errdb "github.com/koliader/tellmi-sdk/errors/db"
+	errsvc "github.com/koliader/tellmi-sdk/errors/service"
+	"github.com/koliader/tellmi-sdk/token"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
@@ -27,10 +27,10 @@ func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload
 	}
 	post, err := s.store.CreatePost(ctx, arg)
 	if err != nil {
-		if db_err.ErrorCode(err) == db_err.ForeignKeyViolation {
-			return nil, grpc_err.ErrorResponse(codes.NotFound, "invalid category data")
+		if errdb.ErrorCode(err) == errdb.ForeignKeyViolation {
+			return nil, errsvc.ErrorResponse(codes.NotFound, "invalid category data")
 		}
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to create post: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to create post: %v", err)
 	}
 	return &post, nil
 }
@@ -38,7 +38,7 @@ func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload
 func (s *Service) ListPosts(ctx context.Context) (*[]db.ListPostsRow, error) {
 	posts, err := s.store.ListPosts(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to list posts: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to list posts: %v", err)
 	}
 	return &posts, nil
 }
@@ -47,9 +47,9 @@ func (s *Service) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*db.GetP
 	post, err := s.store.GetPostByID(ctx, req.GetId())
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
+			return nil, errsvc.ErrorResponse(codes.NotFound, notFound)
 		}
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to get post")
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to get post")
 	}
 	return &post, nil
 }
@@ -58,12 +58,12 @@ func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq, payload *to
 	post, err := s.store.GetPostByID(ctx, req.Id)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
+			return nil, errsvc.ErrorResponse(codes.NotFound, notFound)
 		}
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to get post: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to get post: %v", err)
 	}
 	if post.Username != payload.Username {
-		return nil, grpc_err.ErrorResponse(codes.PermissionDenied, "you have no access to change this post")
+		return nil, errsvc.ErrorResponse(codes.PermissionDenied, "you have no access to change this post")
 	}
 	arg := db.EditPostParams{
 		ID:          req.GetId(),
@@ -74,12 +74,12 @@ func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq, payload *to
 	updatedtPost, err := s.store.EditPost(ctx, arg)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, grpc_err.ErrorResponse(codes.NotFound, notFound)
+			return nil, errsvc.ErrorResponse(codes.NotFound, notFound)
 		}
-		if db_err.ErrorCode(err) == db_err.ForeignKeyViolation {
-			return nil, grpc_err.ErrorResponse(codes.NotFound, "invalid category data: %v", err)
+		if errdb.ErrorCode(err) == errdb.ForeignKeyViolation {
+			return nil, errsvc.ErrorResponse(codes.NotFound, "invalid category data: %v", err)
 		}
-		return nil, grpc_err.ErrorResponse(codes.Internal, "error to edit post: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to edit post: %v", err)
 	}
 	return &updatedtPost, nil
 }
@@ -90,14 +90,14 @@ func (s *Service) DeletePost(ctx context.Context, req *pb.GetByIDReq, payload *t
 		return err
 	}
 	if post.Username != payload.Username {
-		return grpc_err.ErrorResponse(codes.PermissionDenied, "you have no access to delete this post")
+		return errsvc.ErrorResponse(codes.PermissionDenied, "you have no access to delete this post")
 	}
 	err = s.store.DeletePost(ctx, req.GetId())
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return grpc_err.ErrorResponse(codes.NotFound, notFound)
+			return errsvc.ErrorResponse(codes.NotFound, notFound)
 		}
-		return grpc_err.ErrorResponse(codes.Internal, "error to delete post: %v", err)
+		return errsvc.ErrorResponse(codes.Internal, "error to delete post: %v", err)
 	}
 	return nil
 }

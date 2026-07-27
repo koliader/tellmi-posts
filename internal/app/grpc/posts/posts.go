@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/koliader/tellmi-posts/internal/lib/converter"
-	grpc_err "github.com/koliader/tellmi-posts/internal/lib/error/service"
-	pb "github.com/koliader/tellmi-posts/internal/pb"
+	errsvc "github.com/koliader/tellmi-sdk/errors/service"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
@@ -15,7 +15,7 @@ import (
 func (s *Server) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*pb.Post, error) {
 	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 	post, err := s.posts_service.CreatePost(ctx, req, payload)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.PostR
 func (s *Server) EditPost(ctx context.Context, req *pb.EditPostReq) (*pb.Post, error) {
 	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
 	post, err := s.posts_service.EditPost(ctx, req, payload)
@@ -67,7 +67,7 @@ func (s *Server) EditPost(ctx context.Context, req *pb.EditPostReq) (*pb.Post, e
 func (s *Server) DeletePost(ctx context.Context, req *pb.GetByIDReq) (*pb.Success, error) {
 	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
 	err = s.posts_service.DeletePost(ctx, req, payload)
@@ -83,7 +83,7 @@ func (s *Server) DeletePost(ctx context.Context, req *pb.GetByIDReq) (*pb.Succes
 func (s *Server) CreateCategory(ctx context.Context, req *pb.CreateCategoryReq) (*pb.Category, error) {
 	_, err := s.middleware.AuthorizeAdmin(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize admin: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize admin: %v", err)
 
 	}
 	category, err := s.categories_service.CreateCategory(ctx, req)
@@ -105,7 +105,7 @@ func (s *Server) ListCategories(ctx context.Context, req *pb.Empty) (*pb.ListCat
 func (s *Server) EditCategory(ctx context.Context, req *pb.EditCategoryReq) (*pb.Success, error) {
 	_, err := s.middleware.AuthorizeAdmin(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize admin: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize admin: %v", err)
 	}
 
 	err = s.categories_service.EditCategory(ctx, req)
@@ -120,7 +120,7 @@ func (s *Server) EditCategory(ctx context.Context, req *pb.EditCategoryReq) (*pb
 func (s *Server) CreateComment(ctx context.Context, req *pb.CreateCommentReq) (*pb.Comment, error) {
 	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
 	comment, err := s.comments_service.CreateComment(ctx, req, payload)
@@ -142,7 +142,7 @@ func (s *Server) ListCommentsByPost(ctx context.Context, req *pb.GetByIDReq) (*p
 func (s *Server) EditComment(ctx context.Context, req *pb.EditCommentReq) (*pb.Comment, error) {
 	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
 	comment, err := s.comments_service.EditComment(ctx, req, payload)
@@ -155,7 +155,7 @@ func (s *Server) EditComment(ctx context.Context, req *pb.EditCommentReq) (*pb.C
 func (s *Server) DeleteComment(ctx context.Context, req *pb.GetByIDReq) (*pb.Success, error) {
 	payload, err := s.middleware.AuthorizeUser(ctx)
 	if err != nil {
-		return nil, grpc_err.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
+		return nil, errsvc.ErrorResponse(codes.Unauthenticated, "error to authorize user: %v", err)
 	}
 
 	err = s.comments_service.DeleteComment(ctx, req, payload)

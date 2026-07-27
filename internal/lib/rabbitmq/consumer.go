@@ -4,23 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 
+	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
 	"github.com/rs/zerolog/log"
 )
 
-func (c *Client) ConsumeUpdateUser(handler func(req UserUpdated) error) error {
-	messages, err := c.GetMessages(UserUpdatedQueue)
+func ConsumeUpdateUser(client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserUpdated) error) error {
+	messages, err := client.GetMessages(sdkrabbitmq.UserUpdatedQueue)
 	if err != nil {
 		return fmt.Errorf("error to get update user queue messages: %v", err)
 	}
 	go func() {
 		for message := range messages {
-			var messageBody UserUpdated
+			var messageBody sdkrabbitmq.UserUpdated
 			err := json.Unmarshal(message.Body, &messageBody)
 			if err != nil {
 				log.Error().Err(err).Msg("error to unmarshal rabbitmq message")
 				continue
 			}
-
 			err = handler(messageBody)
 			if err != nil {
 				log.Error().Err(err).Msg("error to handle rabbitmq message")
@@ -32,20 +32,19 @@ func (c *Client) ConsumeUpdateUser(handler func(req UserUpdated) error) error {
 	return nil
 }
 
-func (c *Client) ConsumeUserCreated(handler func(req UserCreated) error) error {
-	messages, err := c.GetMessages(UserCreatedQueue)
+func ConsumeUserCreated(client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserCreated) error) error {
+	messages, err := client.GetMessages(sdkrabbitmq.UserCreatedQueue)
 	if err != nil {
 		return fmt.Errorf("error to get user created queue messages: %v", err)
 	}
 	go func() {
 		for message := range messages {
-			var messageBody UserCreated
+			var messageBody sdkrabbitmq.UserCreated
 			err := json.Unmarshal(message.Body, &messageBody)
 			if err != nil {
 				log.Error().Err(err).Msg("error to unmarshal rabbitmq message")
 				continue
 			}
-
 			err = handler(messageBody)
 			if err != nil {
 				log.Error().Err(err).Msg("error to handle rabbitmq message")

@@ -3,7 +3,7 @@ package converter
 import (
 	"sync"
 
-	pb "github.com/koliader/tellmi-posts/internal/pb"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 )
 

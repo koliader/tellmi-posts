@@ -14,7 +14,11 @@ import (
 const userNotFound = "user not fond"
 
 func (s *Service) CreateUser(ctx context.Context, req *rabbitmq.UserCreated) (*db.User, error) {
-	user, err := s.store.CreateUser(ctx, req.Username)
+	arg := db.CreateUserParams{
+		ID:       req.ID,
+		Username: req.Username,
+	}
+	user, err := s.store.CreateUser(ctx, arg)
 	if err != nil {
 		if errdb.ErrorCode(err) == errdb.UniqueViolation {
 			return nil, errsvc.ErrorResponse(codes.AlreadyExists, "user with this username already exists")
@@ -26,7 +30,7 @@ func (s *Service) CreateUser(ctx context.Context, req *rabbitmq.UserCreated) (*d
 
 func (s *Service) UpdateUser(ctx context.Context, req *rabbitmq.UserUpdated) (*db.User, error) {
 	arg := db.UpdateUserParams{
-		Username:    req.Username,
+		ID:          req.ID,
 		NewUsername: req.NewUsername,
 	}
 	user, err := s.store.UpdateUser(ctx, arg)
@@ -40,7 +44,7 @@ func (s *Service) UpdateUser(ctx context.Context, req *rabbitmq.UserUpdated) (*d
 }
 
 func (s *Service) GetUser(ctx context.Context, username *string) (*db.User, error) {
-	user, err := s.store.GetUser(ctx, *username)
+	user, err := s.store.GetUserByUsername(ctx, *username)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, errsvc.ErrorResponse(codes.NotFound, userNotFound)

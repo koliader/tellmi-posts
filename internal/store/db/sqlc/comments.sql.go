@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createComment = `-- name: CreateComment :one
@@ -20,9 +22,9 @@ INSERT INTO comments (
 `
 
 type CreateCommentParams struct {
-	Comment string `json:"comment"`
-	PostID  int64  `json:"post_id"`
-	UserID  int64  `json:"user_id"`
+	Comment string    `json:"comment"`
+	PostID  int64     `json:"post_id"`
+	UserID  uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (Comment, error) {
@@ -94,17 +96,17 @@ ORDER BY c.id
 `
 
 type GetCommentRow struct {
-	ID                 int64  `json:"id"`
-	Comment            string `json:"comment"`
-	PostID             int64  `json:"post_id"`
-	UserID             int64  `json:"user_id"`
-	CommenterUsername  string `json:"commenter_username"`
-	PostTitle          string `json:"post_title"`
-	PostDescription    string `json:"post_description"`
-	PostAuthorID       int64  `json:"post_author_id"`
-	PostAuthorUsername string `json:"post_author_username"`
-	CategoryID         int64  `json:"category_id"`
-	CategoryName       string `json:"category_name"`
+	ID                 int64     `json:"id"`
+	Comment            string    `json:"comment"`
+	PostID             int64     `json:"post_id"`
+	UserID             uuid.UUID `json:"user_id"`
+	CommenterUsername  string    `json:"commenter_username"`
+	PostTitle          string    `json:"post_title"`
+	PostDescription    string    `json:"post_description"`
+	PostAuthorID       uuid.UUID `json:"post_author_id"`
+	PostAuthorUsername string    `json:"post_author_username"`
+	CategoryID         int64     `json:"category_id"`
+	CategoryName       string    `json:"category_name"`
 }
 
 func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, error) {
@@ -149,17 +151,17 @@ ORDER BY c.id
 `
 
 type ListCommentsByPostRow struct {
-	ID                 int64  `json:"id"`
-	Comment            string `json:"comment"`
-	PostID             int64  `json:"post_id"`
-	UserID             int64  `json:"user_id"`
-	CommenterUsername  string `json:"commenter_username"`
-	PostTitle          string `json:"post_title"`
-	PostDescription    string `json:"post_description"`
-	PostAuthorID       int64  `json:"post_author_id"`
-	PostAuthorUsername string `json:"post_author_username"`
-	CategoryID         int64  `json:"category_id"`
-	CategoryName       string `json:"category_name"`
+	ID                 int64     `json:"id"`
+	Comment            string    `json:"comment"`
+	PostID             int64     `json:"post_id"`
+	UserID             uuid.UUID `json:"user_id"`
+	CommenterUsername  string    `json:"commenter_username"`
+	PostTitle          string    `json:"post_title"`
+	PostDescription    string    `json:"post_description"`
+	PostAuthorID       uuid.UUID `json:"post_author_id"`
+	PostAuthorUsername string    `json:"post_author_username"`
+	CategoryID         int64     `json:"category_id"`
+	CategoryName       string    `json:"category_name"`
 }
 
 func (q *Queries) ListCommentsByPost(ctx context.Context, postID int64) ([]ListCommentsByPostRow, error) {

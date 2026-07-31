@@ -4,27 +4,31 @@
 
 package db
 
+import (
+	"github.com/google/uuid"
+)
+
 type Category struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
 type Comment struct {
-	ID      int64  `json:"id"`
-	Comment string `json:"comment"`
-	PostID  int64  `json:"post_id"`
-	UserID  int64  `json:"user_id"`
+	ID      int64     `json:"id"`
+	Comment string    `json:"comment"`
+	PostID  int64     `json:"post_id"`
+	UserID  uuid.UUID `json:"user_id"`
 }
 
 type Post struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	UserID      int64  `json:"user_id"`
-	CategoryID  int64  `json:"category_id"`
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	CategoryID  int64     `json:"category_id"`
 }
 
 type User struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
 }

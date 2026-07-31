@@ -12,14 +12,14 @@ func ConvertPost(post db.Post) *pb.Post {
 		Id:          post.ID,
 		Title:       post.Title,
 		Description: post.Description,
-		UserId:      post.UserID,
+		UserId:      post.UserID.String(),
 		CategoryId:  post.CategoryID,
 	}
 }
 
 func ConvertListPostRow(post db.ListPostsRow) *pb.PostRow {
 	category := pb.Category{Id: post.CategoryID, Name: post.Name}
-	user := pb.User{Id: post.UserID, Username: post.Username}
+	user := pb.User{Id: post.UserID.String(), Username: post.Username}
 	return &pb.PostRow{
 		Id:          post.ID,
 		Title:       post.Title,

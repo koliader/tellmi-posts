@@ -7,7 +7,7 @@ import (
 	"github.com/koliader/tellmi-posts/internal/lib/config"
 	grpcmiddleware "github.com/koliader/tellmi-sdk/middleware"
 	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
-	"github.com/koliader/tellmi-sdk/token"
+	sdktoken "github.com/koliader/tellmi-sdk/token"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	categories_service "github.com/koliader/tellmi-posts/internal/services/categories"
 	comments_service "github.com/koliader/tellmi-posts/internal/services/comments"
@@ -26,11 +26,10 @@ type Server struct {
 	middleware         *grpcmiddleware.GrpcMiddleware
 	rabbitmqClient     *sdkrabbitmq.Client
 	users_service      *users_service.Service
-	token_maker        token.Maker
 }
 
 func NewServer(config config.Config, store db.Store) (*Server, error) {
-	tokenMaker, err := token.NewJWTMaker(config.TokenKey)
+	tokenMaker, err := sdktoken.NewJWTMaker(config.TokenKey)
 	if err != nil {
 		return nil, fmt.Errorf("error to create token maker: %v", err)
 	}
@@ -53,7 +52,6 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		middleware:         mw,
 		rabbitmqClient:     rabbitmqClient,
 		users_service:      usersService,
-		token_maker:        tokenMaker,
 	}
 
 	return &server, nil
@@ -61,7 +59,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 
 func (s *Server) ConsumeUserUpdated() error {
 	return localrabbitmq.ConsumeUpdateUser(s.rabbitmqClient, func(req sdkrabbitmq.UserUpdated) error {
-		log.Info().Msgf("received update user username: %v -> %s", req.Username, req.NewUsername)
+		log.Info().Msgf("received update user: %s -> %s", req.ID, req.NewUsername)
 		user, err := s.users_service.UpdateUser(context.Background(), &req)
 		if err != nil {
 			log.Info().Msgf("error to update user: %v", err)
@@ -74,7 +72,7 @@ func (s *Server) ConsumeUserUpdated() error {
 
 func (s *Server) ConsumeUserCreated() error {
 	return localrabbitmq.ConsumeUserCreated(s.rabbitmqClient, func(req sdkrabbitmq.UserCreated) error {
-		log.Info().Msgf("received user created: username=%s", req.Username)
+		log.Info().Msgf("received user created: id=%s username=%s", req.ID, req.Username)
 		// TODO: implement actual logic for new user creation in posts
 
 		user, err := s.users_service.CreateUser(context.Background(), &req)

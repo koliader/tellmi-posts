@@ -4,31 +4,27 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	errdb "github.com/koliader/tellmi-sdk/errors/db"
 	errsvc "github.com/koliader/tellmi-sdk/errors/service"
-	"github.com/koliader/tellmi-sdk/token"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
-	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
+	"github.com/koliader/tellmi-sdk/token"
 	"google.golang.org/grpc/codes"
 )
 
 const notFound = "post not found"
 
 func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload *token.Payload) (*db.Post, error) {
-	user, err := s.users_service.GetUser(ctx, &payload.Username)
-	if err != nil {
-		return nil, err
-	}
 	arg := db.CreatePostParams{
 		Title:       req.GetTitle(),
 		Description: req.GetDescription(),
 		CategoryID:  req.GetCategoryId(),
-		UserID:      user.ID,
+		UserID:      payload.ID,
 	}
 	post, err := s.store.CreatePost(ctx, arg)
 	if err != nil {
 		if errdb.ErrorCode(err) == errdb.ForeignKeyViolation {
-			return nil, errsvc.ErrorResponse(codes.NotFound, "invalid category data")
+			return nil, errsvc.ErrorResponse(codes.NotFound, "invalid category or user data: %v", err)
 		}
 		return nil, errsvc.ErrorResponse(codes.Internal, "error to create post: %v", err)
 	}
@@ -62,7 +58,7 @@ func (s *Service) EditPost(ctx context.Context, req *pb.EditPostReq, payload *to
 		}
 		return nil, errsvc.ErrorResponse(codes.Internal, "error to get post: %v", err)
 	}
-	if post.Username != payload.Username {
+	if post.UserID != payload.ID {
 		return nil, errsvc.ErrorResponse(codes.PermissionDenied, "you have no access to change this post")
 	}
 	arg := db.EditPostParams{
@@ -89,7 +85,7 @@ func (s *Service) DeletePost(ctx context.Context, req *pb.GetByIDReq, payload *t
 	if err != nil {
 		return err
 	}
-	if post.Username != payload.Username {
+	if post.UserID != payload.ID {
 		return errsvc.ErrorResponse(codes.PermissionDenied, "you have no access to delete this post")
 	}
 	err = s.store.DeletePost(ctx, req.GetId())

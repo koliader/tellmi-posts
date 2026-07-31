@@ -15,14 +15,10 @@ import (
 const notFound = "comment not found"
 
 func (s *Service) CreateComment(ctx context.Context, req *pb.CreateCommentReq, payload *token.Payload) (*db.Comment, error) {
-	user, err := s.users_service.GetUser(ctx, &payload.Username)
-	if err != nil {
-		return nil, err
-	}
 	arg := db.CreateCommentParams{
 		Comment: req.GetComment(),
 		PostID:  req.GetPostId(),
-		UserID:  user.ID,
+		UserID:  payload.ID,
 	}
 	comment, err := s.store.CreateComment(ctx, arg)
 	if err != nil {
@@ -50,7 +46,7 @@ func (s *Service) EditComment(ctx context.Context, req *pb.EditCommentReq, paylo
 		}
 		return nil, errsvc.ErrorResponse(codes.Internal, "error to get comment: %v", err)
 	}
-	if payload.Username != comment.CommenterUsername {
+	if comment.UserID != payload.ID {
 		return nil, errsvc.ErrorResponse(codes.PermissionDenied, "you have no access to edit this comment")
 	}
 	arg := db.EditCommentParams{
@@ -75,7 +71,7 @@ func (s *Service) DeleteComment(ctx context.Context, req *pb.GetByIDReq, payload
 		}
 		return errsvc.ErrorResponse(codes.Internal, "error to get comment: %v", err)
 	}
-	if payload.Username != comment.CommenterUsername {
+	if comment.UserID != payload.ID {
 		return errsvc.ErrorResponse(codes.PermissionDenied, "you have no access to edit this comment")
 	}
 	err = s.store.DeleteComment(ctx, req.GetId())

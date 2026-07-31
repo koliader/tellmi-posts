@@ -7,18 +7,26 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
+  id,
   username 
 ) VALUES (
-  $1
+  $1, $2
 ) RETURNING id, username
 `
 
-func (q *Queries) CreateUser(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, username)
+type CreateUserParams struct {
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.ID, arg.Username)
 	var i User
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err
@@ -26,11 +34,23 @@ func (q *Queries) CreateUser(ctx context.Context, username string) (User, error)
 
 const getUser = `-- name: GetUser :one
 SELECT id, username FROM users
+WHERE id = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, id)
+	var i User
+	err := row.Scan(&i.ID, &i.Username)
+	return i, err
+}
+
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, username FROM users
 WHERE username = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, username)
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByUsername, username)
 	var i User
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err
@@ -63,17 +83,17 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET username = $1
-WHERE username = $2
+WHERE id = $2
 RETURNING id, username
 `
 
 type UpdateUserParams struct {
-	NewUsername string `json:"new_username"`
-	Username    string `json:"username"`
+	NewUsername string    `json:"new_username"`
+	ID          uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.NewUsername, arg.Username)
+	row := q.db.QueryRow(ctx, updateUser, arg.NewUsername, arg.ID)
 	var i User
 	err := row.Scan(&i.ID, &i.Username)
 	return i, err

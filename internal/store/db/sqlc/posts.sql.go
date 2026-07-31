@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createPost = `-- name: CreatePost :one
@@ -21,10 +23,10 @@ INSERT INTO posts (
 `
 
 type CreatePostParams struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	UserID      int64  `json:"user_id"`
-	CategoryID  int64  `json:"category_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	CategoryID  int64     `json:"category_id"`
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
@@ -98,13 +100,13 @@ WHERE p.id = $1
 `
 
 type GetPostByIDRow struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	UserID      int64  `json:"user_id"`
-	Username    string `json:"username"`
-	CategoryID  int64  `json:"category_id"`
-	Name        string `json:"name"`
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	Username    string    `json:"username"`
+	CategoryID  int64     `json:"category_id"`
+	Name        string    `json:"name"`
 }
 
 func (q *Queries) GetPostByID(ctx context.Context, id int64) (GetPostByIDRow, error) {
@@ -127,13 +129,13 @@ SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as catego
 `
 
 type ListPostsRow struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	UserID      int64  `json:"user_id"`
-	Username    string `json:"username"`
-	CategoryID  int64  `json:"category_id"`
-	Name        string `json:"name"`
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	Username    string    `json:"username"`
+	CategoryID  int64     `json:"category_id"`
+	Name        string    `json:"name"`
 }
 
 // SELECT * FROM posts;

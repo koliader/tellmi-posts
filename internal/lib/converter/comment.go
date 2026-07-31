@@ -12,7 +12,7 @@ func ConvertComment(comment db.Comment) *pb.Comment {
 		Id:      comment.ID,
 		Comment: comment.Comment,
 		PostId:  comment.PostID,
-		UserId:  comment.UserID,
+		UserId:  comment.UserID.String(),
 	}
 }
 
@@ -34,9 +34,9 @@ func ConvertComments(comments []db.Comment) []*pb.Comment {
 }
 
 func ConvertCommentRow(row db.ListCommentsByPostRow) *pb.CommentRow {
-	user := pb.User{Id: row.UserID, Username: row.CommenterUsername}
+	user := pb.User{Id: row.UserID.String(), Username: row.CommenterUsername}
 	category := pb.Category{Id: row.CategoryID, Name: row.CategoryName}
-	postAuthor := pb.User{Id: row.PostAuthorID, Username: row.PostAuthorUsername}
+	postAuthor := pb.User{Id: row.PostAuthorID.String(), Username: row.PostAuthorUsername}
 	post := pb.PostRow{
 		Id:          row.PostID,
 		Title:       row.PostTitle,

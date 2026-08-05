@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/koliader/tellmi-posts/internal/lib/config"
-	grpcmiddleware "github.com/koliader/tellmi-sdk/middleware"
-	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
-	sdktoken "github.com/koliader/tellmi-sdk/token"
-	pb "github.com/koliader/tellmi-sdk/proto/pb"
+	localrabbitmq "github.com/koliader/tellmi-posts/internal/lib/rabbitmq"
 	categories_service "github.com/koliader/tellmi-posts/internal/services/categories"
 	comments_service "github.com/koliader/tellmi-posts/internal/services/comments"
-	localrabbitmq "github.com/koliader/tellmi-posts/internal/lib/rabbitmq"
 	posts_service "github.com/koliader/tellmi-posts/internal/services/posts"
 	users_service "github.com/koliader/tellmi-posts/internal/services/users"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
+	grpcmiddleware "github.com/koliader/tellmi-sdk/middleware"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
+	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
+	sdktoken "github.com/koliader/tellmi-sdk/token"
 	"github.com/rs/zerolog/log"
 )
 
@@ -81,8 +81,6 @@ func (s *Server) ConsumeUserUpdated(ctx context.Context) error {
 func (s *Server) ConsumeUserCreated(ctx context.Context) error {
 	return localrabbitmq.ConsumeUserCreated(ctx, s.rabbitmqClient, func(req sdkrabbitmq.UserCreated) error {
 		log.Info().Msgf("received user created: id=%s username=%s", req.ID, req.Username)
-		// TODO: implement actual logic for new user creation in posts
-
 		user, err := s.users_service.CreateUser(context.Background(), &req)
 		if err != nil {
 			log.Info().Msgf("error to create user: %v", err)

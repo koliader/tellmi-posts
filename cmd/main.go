@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -12,9 +11,9 @@ import (
 	posts_server "github.com/koliader/tellmi-posts/internal/app/grpc/posts"
 	"github.com/koliader/tellmi-posts/internal/lib/config"
 	"github.com/koliader/tellmi-posts/internal/lib/logger"
-	pb "github.com/koliader/tellmi-sdk/proto/pb"
-	"github.com/koliader/tellmi-sdk/health"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
+	"github.com/koliader/tellmi-sdk/health"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -62,7 +61,7 @@ func main() {
 		log.Fatal().Err(err).Msgf("error creating posts server: %v", err)
 	}
 
-	grpcServer := runGrpcServer(config, store)
+	grpcServer := runGrpcServer(server, config)
 
 	go func() {
 		if err := server.ConsumeUserUpdated(ctx); err != nil && err != context.Canceled {
@@ -81,11 +80,7 @@ func main() {
 	grpcServer.GracefulStop()
 }
 
-func runGrpcServer(config config.Config, store db.Store) *grpc.Server {
-	postsServer, err := posts_server.NewServer(config, store)
-	if err != nil {
-		log.Fatal().Err(err).Msg(fmt.Sprintf("cannot create posts service: %v", err))
-	}
+func runGrpcServer(postsServer *posts_server.Server, config config.Config) *grpc.Server {
 	listener, err := net.Listen("tcp", config.ServerAddress)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create listener")
@@ -105,4 +100,3 @@ func runGrpcServer(config config.Config, store db.Store) *grpc.Server {
 
 	return grpcServer
 }
-

@@ -1,57 +1,52 @@
 package rabbitmq
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func ConsumeUpdateUser(client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserUpdated) error) error {
-	messages, err := client.GetMessages(sdkrabbitmq.UserUpdatedQueue)
-	if err != nil {
-		return fmt.Errorf("error to get update user queue messages: %v", err)
+// classify decides whether a handler failure is permanent (reject, no
+// requeue) or transient (requeue). Duplicate/missing-user outcomes from the
+// idempotent services are permanent: retrying them can never succeed.
+func classify(err error) error {
+	switch status.Code(err) {
+	case codes.AlreadyExists, codes.NotFound, codes.InvalidArgument, codes.PermissionDenied:
+		return fmt.Errorf("%w: %v", sdkrabbitmq.ErrReject, err)
+	default:
+		return err
 	}
-	go func() {
-		for message := range messages {
-			var messageBody sdkrabbitmq.UserUpdated
-			err := json.Unmarshal(message.Body, &messageBody)
-			if err != nil {
-				log.Error().Err(err).Msg("error to unmarshal rabbitmq message")
-				continue
-			}
-			err = handler(messageBody)
-			if err != nil {
-				log.Error().Err(err).Msg("error to handle rabbitmq message")
-				continue
-			}
-			log.Info().Msg("user updated in posts successfully")
-		}
-	}()
-	return nil
 }
 
-func ConsumeUserCreated(client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserCreated) error) error {
-	messages, err := client.GetMessages(sdkrabbitmq.UserCreatedQueue)
-	if err != nil {
-		return fmt.Errorf("error to get user created queue messages: %v", err)
-	}
-	go func() {
-		for message := range messages {
-			var messageBody sdkrabbitmq.UserCreated
-			err := json.Unmarshal(message.Body, &messageBody)
-			if err != nil {
-				log.Error().Err(err).Msg("error to unmarshal rabbitmq message")
-				continue
-			}
-			err = handler(messageBody)
-			if err != nil {
-				log.Error().Err(err).Msg("error to handle rabbitmq message")
-				continue
-			}
-			log.Info().Msg("user created event processed in posts successfully")
+func ConsumeUpdateUser(ctx context.Context, client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserUpdated) error) error {
+	return client.Consume(ctx, sdkrabbitmq.UserUpdatedQueue, func(body []byte) error {
+		var messageBody sdkrabbitmq.UserUpdated
+		if err := json.Unmarshal(body, &messageBody); err != nil {
+			return fmt.Errorf("%w: %v", sdkrabbitmq.ErrReject, err)
 		}
-	}()
-	return nil
+		if err := handler(messageBody); err != nil {
+			return classify(err)
+		}
+		log.Info().Msg("user updated in posts successfully")
+		return nil
+	})
+}
+
+func ConsumeUserCreated(ctx context.Context, client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserCreated) error) error {
+	return client.Consume(ctx, sdkrabbitmq.UserCreatedQueue, func(body []byte) error {
+		var messageBody sdkrabbitmq.UserCreated
+		if err := json.Unmarshal(body, &messageBody); err != nil {
+			return fmt.Errorf("%w: %v", sdkrabbitmq.ErrReject, err)
+		}
+		if err := handler(messageBody); err != nil {
+			return classify(err)
+		}
+		log.Info().Msg("user created event processed in posts successfully")
+		return nil
+	})
 }

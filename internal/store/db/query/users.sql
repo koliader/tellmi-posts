@@ -4,7 +4,8 @@ INSERT INTO users (
   username 
 ) VALUES (
   $1, $2
-) RETURNING *;
+) ON CONFLICT (id) DO NOTHING
+RETURNING *;
 
 -- name: ListUsers :many
 SELECT * FROM users;

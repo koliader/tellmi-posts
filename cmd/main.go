@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	posts_server "github.com/koliader/tellmi-posts/internal/app/grpc/posts"
 	"github.com/koliader/tellmi-posts/internal/lib/config"
 	"github.com/koliader/tellmi-posts/internal/lib/logger"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
+	"github.com/koliader/tellmi-sdk/health"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -29,7 +32,10 @@ func main() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	connPool, err := pgxpool.New(context.Background(), config.DBSource)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	connPool, err := pgxpool.New(ctx, config.DBSource)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db")
 	}
@@ -37,24 +43,45 @@ func main() {
 	defer connPool.Close()
 	store := db.NewStore(connPool)
 
-	go runGrpcServer(config, store)
+	if config.HealthAddress != "" {
+		healthServer := health.NewServer(config.HealthAddress,
+			func(ctx context.Context) error {
+				return connPool.Ping(ctx)
+			},
+		)
+		go func() {
+			log.Info().Msgf("start health server at %s", config.HealthAddress)
+			if err := healthServer.Start(); err != nil {
+				log.Error().Err(err).Msg("health server stopped")
+			}
+		}()
+	}
 
 	server, err := posts_server.NewServer(config, store)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("error creating posts server: %v", err)
 	}
-	err = server.ConsumeUserUpdated()
-	if err != nil {
-		log.Fatal().Err(err).Msgf("error starting RabbitMQ update user consumer: %v", err)
-	}
-	err = server.ConsumeUserCreated()
-	if err != nil {
-		log.Fatal().Err(err).Msgf("error starting RabbitMQ user created consumer: %v", err)
-	}
-	select {}
+
+	grpcServer := runGrpcServer(config, store)
+
+	go func() {
+		if err := server.ConsumeUserUpdated(ctx); err != nil && err != context.Canceled {
+			log.Error().Err(err).Msg("RabbitMQ update user consumer stopped")
+		}
+	}()
+	go func() {
+		if err := server.ConsumeUserCreated(ctx); err != nil && err != context.Canceled {
+			log.Error().Err(err).Msg("RabbitMQ user created consumer stopped")
+		}
+	}()
+
+	<-ctx.Done()
+	log.Info().Msg("shutting down posts service")
+	server.CloseRabbitMQ()
+	grpcServer.GracefulStop()
 }
 
-func runGrpcServer(config config.Config, store db.Store) {
+func runGrpcServer(config config.Config, store db.Store) *grpc.Server {
 	postsServer, err := posts_server.NewServer(config, store)
 	if err != nil {
 		log.Fatal().Err(err).Msg(fmt.Sprintf("cannot create posts service: %v", err))
@@ -70,8 +97,12 @@ func runGrpcServer(config config.Config, store db.Store) {
 	reflection.Register(grpcServer)
 
 	log.Info().Msgf("start gRPC server at %s", listener.Addr().String())
-	err = grpcServer.Serve(listener)
-	if err != nil {
-		log.Fatal().Err(err).Msg("cannot start gRPC server")
-	}
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatal().Err(err).Msg("cannot start gRPC server")
+		}
+	}()
+
+	return grpcServer
 }
+

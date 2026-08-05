@@ -14,6 +14,7 @@ type Config struct {
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	Environment         string        `mapstructure:"ENVIRONMENT"`
 	RbmUrl              string        `mapstructure:"RBM_URL"`
+	HealthAddress       string        `mapstructure:"HEALTH_ADDRESS"`
 }
 
 func LoadConfig(path string) (Config, error) {

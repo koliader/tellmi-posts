@@ -57,8 +57,16 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	return &server, nil
 }
 
-func (s *Server) ConsumeUserUpdated() error {
-	return localrabbitmq.ConsumeUpdateUser(s.rabbitmqClient, func(req sdkrabbitmq.UserUpdated) error {
+func (s *Server) CloseRabbitMQ() {
+	if s.rabbitmqClient != nil {
+		if err := s.rabbitmqClient.Close(); err != nil {
+			log.Error().Err(err).Msg("error closing rabbitmq client")
+		}
+	}
+}
+
+func (s *Server) ConsumeUserUpdated(ctx context.Context) error {
+	return localrabbitmq.ConsumeUpdateUser(ctx, s.rabbitmqClient, func(req sdkrabbitmq.UserUpdated) error {
 		log.Info().Msgf("received update user: %s -> %s", req.ID, req.NewUsername)
 		user, err := s.users_service.UpdateUser(context.Background(), &req)
 		if err != nil {
@@ -70,8 +78,8 @@ func (s *Server) ConsumeUserUpdated() error {
 	})
 }
 
-func (s *Server) ConsumeUserCreated() error {
-	return localrabbitmq.ConsumeUserCreated(s.rabbitmqClient, func(req sdkrabbitmq.UserCreated) error {
+func (s *Server) ConsumeUserCreated(ctx context.Context) error {
+	return localrabbitmq.ConsumeUserCreated(ctx, s.rabbitmqClient, func(req sdkrabbitmq.UserCreated) error {
 		log.Info().Msgf("received user created: id=%s username=%s", req.ID, req.Username)
 		// TODO: implement actual logic for new user creation in posts
 

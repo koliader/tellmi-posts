@@ -17,7 +17,8 @@ INSERT INTO users (
   username 
 ) VALUES (
   $1, $2
-) RETURNING id, username
+) ON CONFLICT (id) DO NOTHING
+RETURNING id, username
 `
 
 type CreateUserParams struct {

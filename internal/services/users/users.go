@@ -2,6 +2,7 @@ package users_service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 	errdb "github.com/koliader/tellmi-sdk/errors/db"
@@ -19,13 +20,24 @@ func (s *Service) CreateUser(ctx context.Context, req *rabbitmq.UserCreated) (*d
 		Username: req.Username,
 	}
 	user, err := s.store.CreateUser(ctx, arg)
-	if err != nil {
-		if errdb.ErrorCode(err) == errdb.UniqueViolation {
-			return nil, errsvc.ErrorResponse(codes.AlreadyExists, "user with this username already exists")
-		}
-		return nil, errsvc.ErrorResponse(codes.Internal, "error to create user: %v", err)
+	if err == nil {
+		return &user, nil
 	}
-	return &user, nil
+
+	// duplicate id: INSERT ... ON CONFLICT DO NOTHING returns no row; treat a
+	// redelivered event as a no-op success and return the existing user
+	if errors.Is(err, pgx.ErrNoRows) {
+		existing, getErr := s.store.GetUser(ctx, req.ID)
+		if getErr != nil {
+			return nil, errsvc.ErrorResponse(codes.Internal, "error to get user after duplicate create: %v", getErr)
+		}
+		return &existing, nil
+	}
+
+	if errdb.ErrorCode(err) == errdb.UniqueViolation {
+		return nil, errsvc.ErrorResponse(codes.AlreadyExists, "user with this username already exists")
+	}
+	return nil, errsvc.ErrorResponse(codes.Internal, "error to create user: %v", err)
 }
 
 func (s *Service) UpdateUser(ctx context.Context, req *rabbitmq.UserUpdated) (*db.User, error) {

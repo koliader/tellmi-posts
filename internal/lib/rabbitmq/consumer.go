@@ -23,30 +23,30 @@ func classify(err error) error {
 	}
 }
 
-func ConsumeUpdateUser(ctx context.Context, client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserUpdated) error) error {
-	return client.Consume(ctx, sdkrabbitmq.UserUpdatedQueue, func(body []byte) error {
+func ConsumeUpdateUser(ctx context.Context, client *sdkrabbitmq.Client, handler func(ctx context.Context, req sdkrabbitmq.UserUpdated) error) error {
+	return client.Consume(ctx, sdkrabbitmq.UserUpdatedQueue, func(ctx context.Context, body []byte) error {
 		var messageBody sdkrabbitmq.UserUpdated
 		if err := json.Unmarshal(body, &messageBody); err != nil {
 			return fmt.Errorf("%w: %v", sdkrabbitmq.ErrReject, err)
 		}
-		if err := handler(messageBody); err != nil {
+		if err := handler(ctx, messageBody); err != nil {
 			return classify(err)
 		}
-		log.Info().Msg("user updated in posts successfully")
+		log.Info().Ctx(ctx).Msg("user updated in posts successfully")
 		return nil
 	})
 }
 
-func ConsumeUserCreated(ctx context.Context, client *sdkrabbitmq.Client, handler func(req sdkrabbitmq.UserCreated) error) error {
-	return client.Consume(ctx, sdkrabbitmq.UserCreatedQueue, func(body []byte) error {
+func ConsumeUserCreated(ctx context.Context, client *sdkrabbitmq.Client, handler func(ctx context.Context, req sdkrabbitmq.UserCreated) error) error {
+	return client.Consume(ctx, sdkrabbitmq.UserCreatedQueue, func(ctx context.Context, body []byte) error {
 		var messageBody sdkrabbitmq.UserCreated
 		if err := json.Unmarshal(body, &messageBody); err != nil {
 			return fmt.Errorf("%w: %v", sdkrabbitmq.ErrReject, err)
 		}
-		if err := handler(messageBody); err != nil {
+		if err := handler(ctx, messageBody); err != nil {
 			return classify(err)
 		}
-		log.Info().Msg("user created event processed in posts successfully")
+		log.Info().Ctx(ctx).Msg("user created event processed in posts successfully")
 		return nil
 	})
 }

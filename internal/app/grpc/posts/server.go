@@ -66,9 +66,9 @@ func (s *Server) CloseRabbitMQ() {
 }
 
 func (s *Server) ConsumeUserUpdated(ctx context.Context) error {
-	return localrabbitmq.ConsumeUpdateUser(ctx, s.rabbitmqClient, func(req sdkrabbitmq.UserUpdated) error {
+	return localrabbitmq.ConsumeUpdateUser(ctx, s.rabbitmqClient, func(ctx context.Context, req sdkrabbitmq.UserUpdated) error {
 		log.Info().Msgf("received update user: %s -> %s", req.ID, req.NewUsername)
-		user, err := s.users_service.UpdateUser(context.Background(), &req)
+		user, err := s.users_service.UpdateUser(ctx, &req)
 		if err != nil {
 			log.Info().Msgf("error to update user: %v", err)
 			return err
@@ -79,9 +79,9 @@ func (s *Server) ConsumeUserUpdated(ctx context.Context) error {
 }
 
 func (s *Server) ConsumeUserCreated(ctx context.Context) error {
-	return localrabbitmq.ConsumeUserCreated(ctx, s.rabbitmqClient, func(req sdkrabbitmq.UserCreated) error {
+	return localrabbitmq.ConsumeUserCreated(ctx, s.rabbitmqClient, func(ctx context.Context, req sdkrabbitmq.UserCreated) error {
 		log.Info().Msgf("received user created: id=%s username=%s", req.ID, req.Username)
-		user, err := s.users_service.CreateUser(context.Background(), &req)
+		user, err := s.users_service.CreateUser(ctx, &req)
 		if err != nil {
 			log.Info().Msgf("error to create user: %v", err)
 			return err

@@ -4,9 +4,9 @@ createdb:
 	 docker exec -it pg16 createdb --username=root --owner=root tellmi_posts
 dropdb:
 	 docker exec -it pg16 dropdb tellmi_posts
-migrateup:
+mu:
 	migrate -path internal/store/db/migration -database "postgresql://root:secret@127.0.0.1:5432/tellmi_posts?sslmode=disable" -verbose up
-migratedown:
+md:
 	migrate -path internal/store/db/migration -database "postgresql://root:secret@127.0.0.1:5432/tellmi_posts?sslmode=disable" -verbose down
 sqlc:
 	sqlc generate
@@ -18,10 +18,12 @@ protoc:
 	--go-grpc_out ./internal/pb --go-grpc_opt paths=source_relative \
 	--grpc-gateway_out ./internal/pb --grpc-gateway_opt paths=source_relative \
 	proto/*.proto
+gen:
+	make sqlc; make protoc
 test:
 	go test -v -cover ./...
 evans:
-	 evans --host localhost --port 8081 -r repl
+	 evans --host localhost --port 8082 -r repl
 dev:
 	air -c .air.toml
 server:

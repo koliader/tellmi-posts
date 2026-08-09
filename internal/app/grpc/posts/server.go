@@ -11,6 +11,7 @@ import (
 	posts_service "github.com/koliader/tellmi-posts/internal/services/posts"
 	users_service "github.com/koliader/tellmi-posts/internal/services/users"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
+	redisclient "github.com/koliader/tellmi-posts/internal/store/redis"
 	grpcmiddleware "github.com/koliader/tellmi-sdk/middleware"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	sdkrabbitmq "github.com/koliader/tellmi-sdk/rabbitmq"
@@ -28,7 +29,7 @@ type Server struct {
 	users_service      *users_service.Service
 }
 
-func NewServer(config config.Config, store db.Store) (*Server, error) {
+func NewServer(config config.Config, store db.Store, redis *redisclient.Client) (*Server, error) {
 	tokenMaker, err := sdktoken.NewJWTMaker(config.TokenKey)
 	if err != nil {
 		return nil, fmt.Errorf("error to create token maker: %v", err)
@@ -39,7 +40,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		return nil, fmt.Errorf("error to create rabbitmq client: %v", err)
 	}
 
-	postsService := posts_service.NewService(store, config)
+	postsService := posts_service.NewService(store, config, redis)
 	categoriesService := categories_service.NewServer(config, store)
 	commentsService := comments_service.NewService(store, config)
 	usersService := users_service.NewService(store, config)

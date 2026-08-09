@@ -15,7 +15,7 @@ type Config struct {
 	RbmUrl              string        `mapstructure:"RBM_URL"`
 	HealthAddress       string        `mapstructure:"HEALTH_ADDRESS"`
 	RedisUrl            string        `mapstructure:"REDIS_URL"`
-	RedisDBNumber       int32         `mapstructure:"REDIS_DB_NUMBER"`
+	RedisDBNumber       int           `mapstructure:"REDIS_DB_NUMBER"`
 }
 
 func LoadConfig(path string) (Config, error) {

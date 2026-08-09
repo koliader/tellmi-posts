@@ -18,11 +18,14 @@ type Config struct {
 }
 
 func New(ctx context.Context, cfg Config) (*Client, error) {
-	client := redis.NewClient(&redis.Options{
+	opts := &redis.Options{
 		Addr:     cfg.Addr,
 		Password: cfg.Password,
 		DB:       cfg.DB,
-	})
+	}
+
+	client := redis.NewClient(opts)
+	client.AddHook(newOTelHook(opts))
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		_ = client.Close()

@@ -17,6 +17,7 @@ func ConvertPost(post db.Post) *pb.Post {
 	}
 }
 
+// TODO rename the functions
 func ConvertListPostRow(post db.ListPostsRow) *pb.PostRow {
 	category := pb.Category{Id: post.CategoryID, Name: post.Name}
 	user := pb.User{Id: post.UserID.String(), Username: post.Username}
@@ -61,4 +62,24 @@ func ConvertPosts(posts []db.Post) []*pb.Post {
 		postsPool.Put(p)
 	}
 	return converted
+}
+
+func ConvertGetPostByIDRow(post db.GetPostByIDRow) *pb.PostRow {
+	category := pb.Category{
+		Id:   post.CategoryID,
+		Name: post.Name,
+	}
+
+	user := pb.User{
+		Id:       post.UserID.String(),
+		Username: post.Username,
+	}
+
+	return &pb.PostRow{
+		Id:          post.ID,
+		Title:       post.Title,
+		Description: post.Description,
+		User:        &user,
+		Category:    &category,
+	}
 }

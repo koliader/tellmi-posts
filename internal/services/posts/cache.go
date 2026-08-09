@@ -90,7 +90,7 @@ func (c *PostsCache) SetList(
 func (c *PostsCache) GetByID(
 	ctx context.Context,
 	id int64,
-) (*pb.Post, error) {
+) (*pb.PostRow, error) {
 	key := postByIDKey(id)
 
 	data, err := c.redis.Get(ctx, key)
@@ -102,7 +102,7 @@ func (c *PostsCache) GetByID(
 		return nil, fmt.Errorf("get post from cache: %w", err)
 	}
 
-	var post pb.Post
+	var post pb.PostRow
 
 	if err := json.Unmarshal([]byte(data), &post); err != nil {
 		return nil, fmt.Errorf("unmarshal cached post: %w", err)
@@ -113,7 +113,7 @@ func (c *PostsCache) GetByID(
 
 func (c *PostsCache) SetByID(
 	ctx context.Context,
-	post *pb.Post,
+	post *pb.PostRow,
 ) error {
 	data, err := json.Marshal(post)
 	if err != nil {
@@ -122,11 +122,7 @@ func (c *PostsCache) SetByID(
 
 	key := postByIDKey(post.GetId())
 
-	if err := c.redis.Set(
-		ctx,
-		key,
-		string(data),
-	); err != nil {
+	if err := c.redis.Set(ctx, key, string(data)); err != nil {
 		return fmt.Errorf("set post cache: %w", err)
 	}
 

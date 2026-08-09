@@ -20,21 +20,24 @@ import (
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
 	config, err := config.LoadConfig(".")
-	// config, err := config.LoadKuberConfig()
 	if err != nil {
 		log.Fatal().Msg("cannot load config")
 	}
 
-	if config.Environment == "dev" || config.Environment == "docker" {
+	if config.Environment == "dev" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(otel.NewZerologHook())
-		zerolog.DefaultContextLogger = &log.Logger
+	} else {
+		log.Logger = log.Logger.Hook(otel.NewZerologHook())
 	}
+	zerolog.DefaultContextLogger = &log.Logger
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -81,7 +84,7 @@ func main() {
 		log.Fatal().Err(err).Msgf("error creating posts server: %v", err)
 	}
 
-	grpcServer := runGrpcServer(server, config)
+	grpcServer := runGrpcServer(server, config, otelSDK.TracerProvider, otelSDK.MeterProvider)
 
 	go func() {
 		if err := server.ConsumeUserUpdated(ctx); err != nil && err != context.Canceled {
@@ -100,7 +103,7 @@ func main() {
 	grpcServer.GracefulStop()
 }
 
-func runGrpcServer(postsServer *posts_server.Server, config config.Config) *grpc.Server {
+func runGrpcServer(postsServer *posts_server.Server, config config.Config, tracerProvider trace.TracerProvider, meterProvider metric.MeterProvider) *grpc.Server {
 	listener, err := net.Listen("tcp", config.ServerAddress)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot create listener")
@@ -109,7 +112,10 @@ func runGrpcServer(postsServer *posts_server.Server, config config.Config) *grpc
 	grpcLogger := grpc.UnaryInterceptor(logger.GrpcLogger)
 	grpcServer := grpc.NewServer(
 		grpcLogger,
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler(
+			otelgrpc.WithTracerProvider(tracerProvider),
+			otelgrpc.WithMeterProvider(meterProvider),
+		)),
 	)
 	pb.RegisterPostsServer(grpcServer, postsServer)
 	reflection.Register(grpcServer)

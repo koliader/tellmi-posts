@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/koliader/tellmi-posts/internal/lib/converter"
+	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	errsvc "github.com/koliader/tellmi-sdk/errors/service"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
-	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	"google.golang.org/grpc/codes"
 )
 
@@ -25,8 +25,8 @@ func (s *Server) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*pb.Pos
 	return convertedPost, nil
 }
 
-func (s *Server) ListPosts(ctx context.Context, req *pb.Empty) (*pb.ListPostsRes, error) {
-	posts, err := s.posts_service.ListPosts(ctx)
+func (s *Server) ListPosts(ctx context.Context, req *pb.PaginationReq) (*pb.ListPostsRes, error) {
+	posts, err := s.posts_service.ListPosts(ctx, req)
 	if err != nil {
 		return nil, err
 	}

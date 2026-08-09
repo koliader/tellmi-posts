@@ -1,7 +1,6 @@
 package config
 
 import (
-	"os"
 	"time"
 
 	sdkconfig "github.com/koliader/tellmi-sdk/config"
@@ -19,17 +18,6 @@ type Config struct {
 
 func LoadConfig(path string) (Config, error) {
 	var cfg Config
-	err := sdkconfig.LoadConfig(path, &cfg)
+	err := sdkconfig.Load(path, &cfg)
 	return cfg, err
-}
-
-func LoadKuberConfig() (Config, error) {
-	return Config{
-		DBSource:            os.Getenv("DB_SOURCE"),
-		ServerAddress:       os.Getenv("SERVER_ADDRESS"),
-		TokenKey:            os.Getenv("TOKEN_KEY"),
-		AccessTokenDuration: 720 * time.Hour,
-		Environment:         os.Getenv("ENVIRONMENT"),
-		RbmUrl:              os.Getenv("RBM_URL"),
-	}, nil
 }

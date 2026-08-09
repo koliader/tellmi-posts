@@ -31,8 +31,8 @@ func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload
 	return &post, nil
 }
 
-func (s *Service) ListPosts(ctx context.Context) (*[]db.ListPostsRow, error) {
-	posts, err := s.store.ListPosts(ctx)
+func (s *Service) ListPosts(ctx context.Context, req *pb.PaginationReq) (*[]db.ListPostsRow, error) {
+	posts, err := s.store.ListPosts(ctx, db.ListPostsParams{PageLimit: req.GetLimit(), PageOffset: req.GetOffset()})
 	if err != nil {
 		return nil, errsvc.ErrorResponse(codes.Internal, "error to list posts: %v", err)
 	}

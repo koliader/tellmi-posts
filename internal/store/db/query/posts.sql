@@ -10,7 +10,13 @@ INSERT INTO posts (
 
 -- name: ListPosts :many
 -- SELECT * FROM posts;
-SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name FROM posts AS p JOIN users AS u ON p.user_id = u.id JOIN categories AS c ON p.category_id = c.id;
+SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name
+FROM posts AS p
+JOIN users AS u ON p.user_id = u.id
+JOIN categories AS c ON p.category_id = c.id
+ORDER BY p.id DESC
+LIMIT sqlc.arg(page_limit)
+OFFSET sqlc.arg(page_offset);
 
 -- name: GetPostByID :one
 SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name 

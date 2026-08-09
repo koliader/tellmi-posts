@@ -125,8 +125,19 @@ func (q *Queries) GetPostByID(ctx context.Context, id int64) (GetPostByIDRow, er
 }
 
 const listPosts = `-- name: ListPosts :many
-SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name FROM posts AS p JOIN users AS u ON p.user_id = u.id JOIN categories AS c ON p.category_id = c.id
+SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name
+FROM posts AS p
+JOIN users AS u ON p.user_id = u.id
+JOIN categories AS c ON p.category_id = c.id
+ORDER BY p.id DESC
+LIMIT $2
+OFFSET $1
 `
+
+type ListPostsParams struct {
+	PageOffset int32 `json:"page_offset"`
+	PageLimit  int32 `json:"page_limit"`
+}
 
 type ListPostsRow struct {
 	ID          int64     `json:"id"`
@@ -139,8 +150,8 @@ type ListPostsRow struct {
 }
 
 // SELECT * FROM posts;
-func (q *Queries) ListPosts(ctx context.Context) ([]ListPostsRow, error) {
-	rows, err := q.db.Query(ctx, listPosts)
+func (q *Queries) ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error) {
+	rows, err := q.db.Query(ctx, listPosts, arg.PageOffset, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}

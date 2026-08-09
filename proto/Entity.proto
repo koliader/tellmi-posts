@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb;
 
-option go_package = "github.com/koliader/tellmi-posts";
+option go_package = "github.com/koliader/tellmi-posts/internal/pb";
 
 message User {
   int64 id = 1;
@@ -15,7 +15,35 @@ message Post {
   int64 id = 1;
   string title = 2;
   string description = 3;
-  string author = 4;
+  int64 userId = 4;
+  int64 categoryId = 5;
+}
+message PostRow {
+  int64 id = 1;
+  string title = 2;
+  string description = 3;
+  User user = 4;
+  Category category = 5;
+}
+
+message Comment {
+  int64 id = 1;
+  string comment = 2;
+  int64 postId = 3;
+  int64 userId = 4;
+}
+
+message CommentRow {
+  int64 id = 1;
+  string comment = 2;
+  int64 postId = 3;
+  User user = 4;
+  PostRow post = 5;
+}
+
+message Category {
+  int64 id = 1;
+  string name = 2;
 }
 
 message Empty {}

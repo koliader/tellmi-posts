@@ -7,32 +7,173 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO "Posts" (
+INSERT INTO posts (
   title,
   description,
-  author
+  user_id,
+  category_id
 ) VALUES (
-  $1, $2, $3
-) RETURNING id, title, description, author
+  $1, $2, $3, $4
+) RETURNING id, title, description, user_id, category_id
 `
 
 type CreatePostParams struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Author      string `json:"author"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	CategoryID  int64     `json:"category_id"`
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
-	row := q.db.QueryRow(ctx, createPost, arg.Title, arg.Description, arg.Author)
+	row := q.db.QueryRow(ctx, createPost,
+		arg.Title,
+		arg.Description,
+		arg.UserID,
+		arg.CategoryID,
+	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
 		&i.Description,
-		&i.Author,
+		&i.UserID,
+		&i.CategoryID,
 	)
 	return i, err
+}
+
+const deletePost = `-- name: DeletePost :exec
+DELETE FROM posts
+WHERE id = $1
+`
+
+func (q *Queries) DeletePost(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deletePost, id)
+	return err
+}
+
+const editPost = `-- name: EditPost :one
+UPDATE posts
+SET title = $2,
+description = $3,
+category_id = $4
+WHERE id = $1
+RETURNING id, title, description, user_id, category_id
+`
+
+type EditPostParams struct {
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	CategoryID  int64  `json:"category_id"`
+}
+
+func (q *Queries) EditPost(ctx context.Context, arg EditPostParams) (Post, error) {
+	row := q.db.QueryRow(ctx, editPost,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.CategoryID,
+	)
+	var i Post
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.UserID,
+		&i.CategoryID,
+	)
+	return i, err
+}
+
+const getPostByID = `-- name: GetPostByID :one
+SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name 
+FROM posts AS p 
+JOIN users AS u ON p.user_id = u.id 
+JOIN categories AS c ON p.category_id = c.id 
+WHERE p.id = $1
+`
+
+type GetPostByIDRow struct {
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	Username    string    `json:"username"`
+	CategoryID  int64     `json:"category_id"`
+	Name        string    `json:"name"`
+}
+
+func (q *Queries) GetPostByID(ctx context.Context, id int64) (GetPostByIDRow, error) {
+	row := q.db.QueryRow(ctx, getPostByID, id)
+	var i GetPostByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.UserID,
+		&i.Username,
+		&i.CategoryID,
+		&i.Name,
+	)
+	return i, err
+}
+
+const listPosts = `-- name: ListPosts :many
+SELECT p.id, p.title, p.description, u.id as user_id, u.username, c.id as category_id, c.name
+FROM posts AS p
+JOIN users AS u ON p.user_id = u.id
+JOIN categories AS c ON p.category_id = c.id
+ORDER BY p.id DESC
+LIMIT $2
+OFFSET $1
+`
+
+type ListPostsParams struct {
+	PageOffset int32 `json:"page_offset"`
+	PageLimit  int32 `json:"page_limit"`
+}
+
+type ListPostsRow struct {
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	UserID      uuid.UUID `json:"user_id"`
+	Username    string    `json:"username"`
+	CategoryID  int64     `json:"category_id"`
+	Name        string    `json:"name"`
+}
+
+// SELECT * FROM posts;
+func (q *Queries) ListPosts(ctx context.Context, arg ListPostsParams) ([]ListPostsRow, error) {
+	rows, err := q.db.Query(ctx, listPosts, arg.PageOffset, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPostsRow{}
+	for rows.Next() {
+		var i ListPostsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.UserID,
+			&i.Username,
+			&i.CategoryID,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

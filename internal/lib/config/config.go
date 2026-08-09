@@ -1,36 +1,23 @@
 package config
 
 import (
-	"os"
+	"time"
 
-	"github.com/spf13/viper"
+	sdkconfig "github.com/koliader/tellmi-sdk/config"
 )
 
 type Config struct {
-	DBSource      string `mapstructure:"DB_SOURCE"`
-	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
-	Environment   string `mapstructure:"ENVIRONMENT"`
+	DBSource            string        `mapstructure:"DB_SOURCE"`
+	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
+	TokenKey            string        `mapstructure:"TOKEN_KEY"`
+	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	Environment         string        `mapstructure:"ENVIRONMENT"`
+	RbmUrl              string        `mapstructure:"RBM_URL"`
+	HealthAddress       string        `mapstructure:"HEALTH_ADDRESS"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		return
-	}
-	err = viper.Unmarshal(&config)
-	return
-}
-
-func LoadKuberConfig() (config Config, err error) {
-
-	return Config{
-		DBSource:      os.Getenv("DB_SOURCE"),
-		ServerAddress: os.Getenv("SERVER_ADDRESS"),
-		Environment:   os.Getenv("ENVIRONMENT"),
-	}, nil
+func LoadConfig(path string) (Config, error) {
+	var cfg Config
+	err := sdkconfig.Load(path, &cfg)
+	return cfg, err
 }

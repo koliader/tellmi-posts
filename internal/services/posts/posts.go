@@ -2,13 +2,16 @@ package posts_service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/koliader/tellmi-posts/internal/lib/converter"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	errdb "github.com/koliader/tellmi-sdk/errors/db"
 	errsvc "github.com/koliader/tellmi-sdk/errors/service"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	"github.com/koliader/tellmi-sdk/token"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 )
 
@@ -28,15 +31,76 @@ func (s *Service) CreatePost(ctx context.Context, req *pb.CreatePostReq, payload
 		}
 		return nil, errsvc.ErrorResponse(codes.Internal, "error to create post: %v", err)
 	}
+	err = s.postsCache.DeleteList(ctx)
+	if err != nil {
+		return nil, errsvc.ErrorResponse(codes.Internal, "error to delete cache: %v", err)
+	}
 	return &post, nil
 }
 
-func (s *Service) ListPosts(ctx context.Context, req *pb.PaginationReq) (*[]db.ListPostsRow, error) {
-	posts, err := s.store.ListPosts(ctx, db.ListPostsParams{PageLimit: req.GetLimit(), PageOffset: req.GetOffset()})
-	if err != nil {
-		return nil, errsvc.ErrorResponse(codes.Internal, "error to list posts: %v", err)
+func (s *Service) ListPosts(
+	ctx context.Context,
+	req *pb.PaginationReq,
+) (*pb.ListPostsRes, error) {
+	limit := req.GetLimit()
+	offset := req.GetOffset()
+
+	// 1. Try cache
+	cachedPosts, err := s.postsCache.GetList(
+		ctx,
+		int(limit),
+		int(offset),
+	)
+
+	if err == nil {
+		return &pb.ListPostsRes{
+			Posts: cachedPosts,
+		}, nil
 	}
-	return &posts, nil
+
+	// Redis miss is expected.
+	// Other Redis errors should be logged.
+	if !errors.Is(err, errdb.ErrCacheMiss) {
+		log.Warn().
+			Err(err).
+			Msg("failed to get posts from cache")
+	}
+
+	// 2. Get from PostgreSQL
+	dbPosts, err := s.store.ListPosts(
+		ctx,
+		db.ListPostsParams{
+			PageLimit:  limit,
+			PageOffset: offset,
+		},
+	)
+	if err != nil {
+		return nil, errsvc.ErrorResponse(
+			codes.Internal,
+			"error to list posts: %v",
+			err,
+		)
+	}
+
+	// 3. Convert DB models → protobuf models
+	posts := converter.ConvertPostRows(dbPosts)
+
+	// 4. Put into Redis
+	if err := s.postsCache.SetList(
+		ctx,
+		int(limit),
+		int(offset),
+		posts,
+	); err != nil {
+		log.Warn().
+			Err(err).
+			Msg("failed to cache posts")
+	}
+
+	// 5. Return protobuf response
+	return &pb.ListPostsRes{
+		Posts: posts,
+	}, nil
 }
 
 func (s *Service) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*db.GetPostByIDRow, error) {

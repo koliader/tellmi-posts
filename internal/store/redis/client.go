@@ -2,7 +2,7 @@ package redisclient
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -41,10 +41,9 @@ func (c *Client) Close() error {
 func (c *Client) Set(
 	ctx context.Context,
 	key string,
-	value string,
-	expiration time.Duration,
+	value any,
 ) error {
-	return c.client.Set(ctx, key, value, expiration).Err()
+	return c.client.Set(ctx, key, value, 0).Err()
 }
 
 func (c *Client) Get(
@@ -59,4 +58,37 @@ func (c *Client) Delete(
 	key string,
 ) error {
 	return c.client.Del(ctx, key).Err()
+}
+
+func (c *Client) DeleteByPattern(
+	ctx context.Context,
+	pattern string,
+) error {
+	var cursor uint64
+
+	for {
+		keys, nextCursor, err := c.client.Scan(
+			ctx,
+			cursor,
+			pattern,
+			100, // scan up to ~100 keys per iteration
+		).Result()
+		if err != nil {
+			return fmt.Errorf("scan redis keys: %w", err)
+		}
+
+		if len(keys) > 0 {
+			if err := c.client.Del(ctx, keys...).Err(); err != nil {
+				return fmt.Errorf("delete redis keys: %w", err)
+			}
+		}
+
+		cursor = nextCursor
+
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return nil
 }

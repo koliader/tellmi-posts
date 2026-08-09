@@ -5,17 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	redisclient "github.com/koliader/tellmi-posts/internal/store/redis"
 	errdb "github.com/koliader/tellmi-sdk/errors/db"
 	"github.com/koliader/tellmi-sdk/proto/pb"
 	"github.com/redis/go-redis/v9"
-)
-
-const (
-	postsListTTL = 5 * time.Second
-	postByIDTTL  = 5 * time.Second
 )
 
 type PostsCache struct {
@@ -44,7 +38,7 @@ func (c *PostsCache) GetList(
 	ctx context.Context,
 	limit int,
 	offset int,
-) ([]pb.Post, error) {
+) ([]*pb.PostRow, error) {
 	key := postsListKey(limit, offset)
 
 	data, err := c.redis.Get(ctx, key)
@@ -56,11 +50,12 @@ func (c *PostsCache) GetList(
 		return nil, fmt.Errorf("get posts from cache: %w", err)
 	}
 
-	var posts []pb.Post
+	var posts []*pb.PostRow
 
 	if err := json.Unmarshal([]byte(data), &posts); err != nil {
 		return nil, fmt.Errorf("unmarshal cached posts: %w", err)
 	}
+	fmt.Println("got from redis")
 
 	return posts, nil
 }
@@ -69,7 +64,7 @@ func (c *PostsCache) SetList(
 	ctx context.Context,
 	limit int,
 	offset int,
-	posts []pb.Post,
+	posts []*pb.PostRow,
 ) error {
 	data, err := json.Marshal(posts)
 	if err != nil {
@@ -78,13 +73,14 @@ func (c *PostsCache) SetList(
 
 	key := postsListKey(limit, offset)
 
-	if err := c.redis.Set(
+	err = c.redis.Set(
 		ctx,
 		key,
-		string(data),
-		postsListTTL,
-	); err != nil {
-		return fmt.Errorf("set posts cache: %w", err)
+		data,
+	)
+
+	if err != nil {
+		return fmt.Errorf("redis SET failed for key %q: %w", key, err)
 	}
 
 	return nil
@@ -130,7 +126,6 @@ func (c *PostsCache) SetByID(
 		ctx,
 		key,
 		string(data),
-		postByIDTTL,
 	); err != nil {
 		return fmt.Errorf("set post cache: %w", err)
 	}
@@ -146,6 +141,14 @@ func (c *PostsCache) DeleteByID(
 
 	if err := c.redis.Delete(ctx, key); err != nil {
 		return fmt.Errorf("delete post cache: %w", err)
+	}
+
+	return nil
+}
+
+func (c *PostsCache) DeleteList(ctx context.Context) error {
+	if err := c.redis.DeleteByPattern(ctx, "posts:list:*"); err != nil {
+		return fmt.Errorf("delete posts list cache: %w", err)
 	}
 
 	return nil

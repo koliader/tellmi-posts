@@ -30,9 +30,9 @@ func (s *Server) ListPosts(ctx context.Context, req *pb.PaginationReq) (*pb.List
 	if err != nil {
 		return nil, err
 	}
-	convertedPosts := converter.ConverPostRows(*posts)
-	res := pb.ListPostsRes{Posts: convertedPosts}
-	return &res, nil
+	// convertedPosts := converter.ConverPostRows(*posts)
+	// res := pb.ListPostsRes{Posts: convertedPosts}
+	return posts, nil
 }
 
 func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.PostRow, error) {

@@ -3,12 +3,28 @@ package redisclient
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
+)
+
+const (
+	// reconnectBackoffInitial is how long we wait before the first retry when
+	// redis is unreachable; it doubles until reconnectBackoffMax, mirroring the
+	// postgres (pgxpool) and rabbitmq reconnection behaviour in this service.
+	reconnectBackoffInitial = 500 * time.Millisecond
+	reconnectBackoffMax     = 10 * time.Second
+	// healthCheckInterval is how often a healthy connection is probed so a
+	// mid-run outage is noticed without pinging redis constantly.
+	healthCheckInterval = 30 * time.Second
 )
 
 type Client struct {
-	client *redis.Client
+	client    *redis.Client
+	stopped   chan struct{}
+	closeOnce sync.Once
 }
 
 type Config struct {
@@ -17,7 +33,26 @@ type Config struct {
 	DB       int
 }
 
-func New(ctx context.Context, cfg Config) (*Client, error) {
+// redisLogger routes go-redis's internal diagnostics (e.g. "connection pool:
+// failed to dial") into zerolog instead of the standard log package, so they
+// follow the service's structured, colored logging. It logs at debug level:
+// per-command dial failures during an outage are already surfaced (and
+// rate-limited to state transitions) by reconnectLoop, so an unhealthy redis
+// never floods the console.
+type redisLogger struct{}
+
+func (redisLogger) Printf(_ context.Context, format string, v ...any) {
+	log.Debug().Msgf(format, v...)
+}
+
+// New creates a redis client without requiring a live connection, matching how
+// postgres (pgxpool) is handled: the service never fails to start because redis
+// is down. go-redis dials lazily per command and reconnects on its own, and a
+// background loop keeps probing redis with exponential backoff so an outage is
+// logged and recovery is reported.
+func New(ctx context.Context, cfg Config) *Client {
+	redis.SetLogger(redisLogger{})
+
 	opts := &redis.Options{
 		Addr:     cfg.Addr,
 		Password: cfg.Password,
@@ -27,18 +62,63 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 	client := redis.NewClient(opts)
 	client.AddHook(newOTelHook(opts))
 
-	if err := client.Ping(ctx).Err(); err != nil {
-		_ = client.Close()
-		return nil, err
+	c := &Client{
+		client:  client,
+		stopped: make(chan struct{}),
 	}
+	go c.reconnectLoop(ctx)
 
-	return &Client{
-		client: client,
-	}, nil
+	return c
 }
 
 func (c *Client) Close() error {
+	c.closeOnce.Do(func() {
+		close(c.stopped)
+	})
 	return c.client.Close()
+}
+
+// reconnectLoop probes redis with a Ping and reconnects (transparently, via the
+// client) using exponential backoff when it is unreachable, so a redis outage
+// never takes the service down and recovery is logged.
+func (c *Client) reconnectLoop(ctx context.Context) {
+	backoff := reconnectBackoffInitial
+	connected := true
+
+	for {
+		err := c.client.Ping(ctx).Err()
+		if err != nil {
+			if connected {
+				log.Warn().Err(err).Msg("redis: connection lost, attempting reconnect")
+				connected = false
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-c.stopped:
+				return
+			case <-time.After(backoff):
+			}
+			if backoff < reconnectBackoffMax {
+				backoff *= 2
+			}
+			continue
+		}
+
+		if !connected {
+			log.Info().Msg("redis: reconnected")
+		}
+		connected = true
+		backoff = reconnectBackoffInitial
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-c.stopped:
+			return
+		case <-time.After(healthCheckInterval):
+		}
+	}
 }
 
 func (c *Client) Set(

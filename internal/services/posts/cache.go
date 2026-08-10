@@ -95,7 +95,7 @@ func (c *PostsCache) SetFeed(
 	pipe := c.redis.Pipeline(ctx)
 	pipe.Del(ctx, feedKey)
 	if len(elements) > 0 {
-		values := make([]interface{}, len(elements))
+		values := make([]any, len(elements))
 		for i, el := range elements {
 			values[i] = el
 		}

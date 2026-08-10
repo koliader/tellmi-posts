@@ -66,10 +66,7 @@ func main() {
 	defer connPool.Close()
 	store := db.NewStore(connPool)
 
-	redisClient, err := redisclient.New(ctx, redisclient.Config{Addr: config.RedisUrl, Password: "", DB: config.RedisDBNumber})
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to initialize redis")
-	}
+	redisClient := redisclient.New(ctx, redisclient.Config{Addr: config.RedisUrl, Password: "", DB: config.RedisDBNumber})
 	defer redisClient.Close()
 
 	if config.HealthAddress != "" {

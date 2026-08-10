@@ -46,11 +46,19 @@ func (s *Service) CreatePost(
 		)
 	}
 
-	// Creating a post can change every paginated list.
-	if err := s.postsCache.DeleteList(ctx); err != nil {
-		log.Warn().
-			Err(err).
-			Msg("failed to invalidate posts list cache")
+	// Push the new post to the head of the feed immediately (atomic LPUSH +
+	// LTRIM). This makes it visible in the list with no delay and no
+	// invalidation of the cached feed.
+	if row, err := s.store.GetPostByID(ctx, post.ID); err == nil {
+		postRow := converter.ConvertGetPostByIDRow(row)
+		if err := s.postsCache.SetByID(ctx, postRow); err != nil {
+			log.Warn().Err(err).Msg("failed to cache created post")
+		}
+		if err := s.postsCache.PrependPost(ctx, postRow); err != nil {
+			log.Warn().Err(err).Msg("failed to prepend created post to feed")
+		}
+	} else {
+		log.Warn().Err(err).Int64("post_id", post.ID).Msg("failed to load created post for cache")
 	}
 
 	return &post, nil
@@ -63,32 +71,26 @@ func (s *Service) ListPosts(
 	limit := req.GetLimit()
 	offset := req.GetOffset()
 
-	// 1. Try Redis cache.
-	cachedPosts, err := s.postsCache.GetList(
-		ctx,
-		int(limit),
-		int(offset),
-	)
-	if err == nil {
-		return &pb.ListPostsRes{
-			Posts: cachedPosts,
-		}, nil
+	// Windows inside the cached feed are served straight from Redis. Deep
+	// pagination beyond the feed depth goes directly to PostgreSQL.
+	if int(offset)+int(limit) <= feedDepth {
+		cachedPosts, found, err := s.postsCache.GetFeed(ctx, int(limit), int(offset))
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to get posts feed from cache")
+		}
+		if found {
+			return &pb.ListPostsRes{
+				Posts: cachedPosts,
+			}, nil
+		}
 	}
 
-	// Cache miss is expected.
-	// Other Redis errors should only be logged.
-	if !errors.Is(err, errdb.ErrCacheMiss) {
-		log.Warn().
-			Err(err).
-			Msg("failed to get posts from cache")
-	}
-
-	// 2. Get posts from PostgreSQL.
+	// 2. Get posts from PostgreSQL (refill the whole feed depth on a miss).
 	dbPosts, err := s.store.ListPosts(
 		ctx,
 		db.ListPostsParams{
-			PageLimit:  limit,
-			PageOffset: offset,
+			PageLimit:  int32(feedDepth),
+			PageOffset: 0,
 		},
 	)
 	if err != nil {
@@ -102,16 +104,15 @@ func (s *Service) ListPosts(
 	// 3. Convert DB models -> protobuf models.
 	posts := converter.ConvertPostRows(dbPosts)
 
-	// 4. Store result in Redis.
-	if err := s.postsCache.SetList(
-		ctx,
-		int(limit),
-		int(offset),
-		posts,
-	); err != nil {
-		log.Warn().
-			Err(err).
-			Msg("failed to cache posts")
+	// 4. Refill the feed and serve the requested window from it.
+	if int(offset)+int(limit) <= feedDepth {
+		if err := s.postsCache.SetFeed(ctx, posts); err != nil {
+			log.Warn().Err(err).Msg("failed to cache posts feed")
+		}
+
+		start := min(offset, int32(len(posts)))
+		end := min(offset+limit, int32(len(posts)))
+		posts = posts[start:end]
 	}
 
 	// 5. Return response.
@@ -239,11 +240,11 @@ func (s *Service) EditPost(
 			Msg("failed to invalidate post cache")
 	}
 
-	// 5. Updating a post can change every paginated list.
-	if err := s.postsCache.DeleteList(ctx); err != nil {
+	// 5. Updating a post can change the cached feed.
+	if err := s.postsCache.DeleteFeed(ctx); err != nil {
 		log.Warn().
 			Err(err).
-			Msg("failed to invalidate posts list cache")
+			Msg("failed to invalidate posts feed cache")
 	}
 
 	return &updatedPost, nil
@@ -302,11 +303,11 @@ func (s *Service) DeletePost(
 			Msg("failed to invalidate post cache")
 	}
 
-	// 5. Deleting a post can change every paginated list.
-	if err := s.postsCache.DeleteList(ctx); err != nil {
+	// 5. Deleting a post shifts the cached feed.
+	if err := s.postsCache.DeleteFeed(ctx); err != nil {
 		log.Warn().
 			Err(err).
-			Msg("failed to invalidate posts list cache")
+			Msg("failed to invalidate posts feed cache")
 	}
 
 	return nil

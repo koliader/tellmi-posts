@@ -63,6 +63,49 @@ func (c *Client) Delete(
 	return c.client.Del(ctx, key).Err()
 }
 
+// LPush prepends values to the head of the list at key (atomic).
+func (c *Client) LPush(
+	ctx context.Context,
+	key string,
+	values ...string,
+) error {
+	return c.client.LPush(ctx, key, values).Err()
+}
+
+// LTrim keeps only the list elements from start to stop inclusive (atomic).
+func (c *Client) LTrim(
+	ctx context.Context,
+	key string,
+	start int64,
+	stop int64,
+) error {
+	return c.client.LTrim(ctx, key, start, stop).Err()
+}
+
+// LRange returns the list elements from start to stop inclusive.
+func (c *Client) LRange(
+	ctx context.Context,
+	key string,
+	start int64,
+	stop int64,
+) ([]string, error) {
+	return c.client.LRange(ctx, key, start, stop).Result()
+}
+
+// LLen returns the length of the list at key (0 when the key is absent).
+func (c *Client) LLen(
+	ctx context.Context,
+	key string,
+) (int64, error) {
+	return c.client.LLen(ctx, key).Result()
+}
+
+// Pipeline starts a transaction pipeline so a batch of commands executes
+// atomically via MULTI/EXEC.
+func (c *Client) Pipeline(ctx context.Context) redis.Pipeliner {
+	return c.client.TxPipeline()
+}
+
 func (c *Client) DeleteByPattern(
 	ctx context.Context,
 	pattern string,

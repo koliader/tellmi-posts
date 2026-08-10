@@ -15,6 +15,7 @@ import (
 	"github.com/koliader/tellmi-posts/internal/lib/config"
 	"github.com/koliader/tellmi-posts/internal/lib/logger"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
+	redisclient "github.com/koliader/tellmi-posts/internal/store/redis"
 	"github.com/koliader/tellmi-sdk/health"
 	"github.com/koliader/tellmi-sdk/otel"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
@@ -65,6 +66,12 @@ func main() {
 	defer connPool.Close()
 	store := db.NewStore(connPool)
 
+	redisClient, err := redisclient.New(ctx, redisclient.Config{Addr: config.RedisUrl, Password: "", DB: config.RedisDBNumber})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize redis")
+	}
+	defer redisClient.Close()
+
 	if config.HealthAddress != "" {
 		healthServer := health.NewServer(config.HealthAddress,
 			func(ctx context.Context) error {
@@ -79,7 +86,7 @@ func main() {
 		}()
 	}
 
-	server, err := posts_server.NewServer(config, store)
+	server, err := posts_server.NewServer(config, store, redisClient)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("error creating posts server: %v", err)
 	}

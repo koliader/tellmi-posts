@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/koliader/tellmi-posts/internal/lib/converter"
-	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
 	errsvc "github.com/koliader/tellmi-sdk/errors/service"
 	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	"google.golang.org/grpc/codes"
@@ -30,9 +29,9 @@ func (s *Server) ListPosts(ctx context.Context, req *pb.PaginationReq) (*pb.List
 	if err != nil {
 		return nil, err
 	}
-	convertedPosts := converter.ConverPostRows(*posts)
-	res := pb.ListPostsRes{Posts: convertedPosts}
-	return &res, nil
+	// convertedPosts := converter.ConverPostRows(*posts)
+	// res := pb.ListPostsRes{Posts: convertedPosts}
+	return posts, nil
 }
 
 func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.PostRow, error) {
@@ -40,15 +39,7 @@ func (s *Server) GetPostByID(ctx context.Context, req *pb.GetByIDReq) (*pb.PostR
 	if err != nil {
 		return nil, err
 	}
-	return converter.ConvertListPostRow(db.ListPostsRow{
-		ID:          post.ID,
-		Title:       post.Title,
-		Description: post.Description,
-		UserID:      post.UserID,
-		Username:    post.Username,
-		CategoryID:  post.CategoryID,
-		Name:        post.Name,
-	}), nil
+	return post, nil
 }
 
 func (s *Server) EditPost(ctx context.Context, req *pb.EditPostReq) (*pb.Post, error) {

@@ -3,8 +3,8 @@ package converter
 import (
 	"sync"
 
-	pb "github.com/koliader/tellmi-sdk/proto/pb"
 	db "github.com/koliader/tellmi-posts/internal/store/db/sqlc"
+	pb "github.com/koliader/tellmi-sdk/proto/pb"
 )
 
 func ConvertPost(post db.Post) *pb.Post {
@@ -17,6 +17,7 @@ func ConvertPost(post db.Post) *pb.Post {
 	}
 }
 
+// TODO rename the functions
 func ConvertListPostRow(post db.ListPostsRow) *pb.PostRow {
 	category := pb.Category{Id: post.CategoryID, Name: post.Name}
 	user := pb.User{Id: post.UserID.String(), Username: post.Username}
@@ -35,7 +36,7 @@ var postsRowPool = sync.Pool{
 	},
 }
 
-func ConverPostRows(rows []db.ListPostsRow) []*pb.PostRow {
+func ConvertPostRows(rows []db.ListPostsRow) []*pb.PostRow {
 	converted := make([]*pb.PostRow, 0, len(rows))
 	for _, row := range rows {
 		r := postsRowPool.Get().(*db.ListPostsRow)
@@ -61,4 +62,24 @@ func ConvertPosts(posts []db.Post) []*pb.Post {
 		postsPool.Put(p)
 	}
 	return converted
+}
+
+func ConvertGetPostByIDRow(post db.GetPostByIDRow) *pb.PostRow {
+	category := pb.Category{
+		Id:   post.CategoryID,
+		Name: post.Name,
+	}
+
+	user := pb.User{
+		Id:       post.UserID.String(),
+		Username: post.Username,
+	}
+
+	return &pb.PostRow{
+		Id:          post.ID,
+		Title:       post.Title,
+		Description: post.Description,
+		User:        &user,
+		Category:    &category,
+	}
 }
